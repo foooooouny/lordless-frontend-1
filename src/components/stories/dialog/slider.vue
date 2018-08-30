@@ -60,6 +60,10 @@ export default {
       this[actionTypes.LAYOUT_SET_APP_OPTIONS]({ transform: false })
       removeClass('overflow-hidden', document.body)
     }
+  },
+  destroyed () {
+    this[actionTypes.LAYOUT_SET_APP_OPTIONS]({ transform: false })
+    removeClass('overflow-hidden', document.body)
   }
 }
 </script>
