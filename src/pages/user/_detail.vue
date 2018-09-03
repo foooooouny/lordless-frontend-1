@@ -306,7 +306,6 @@ export default {
     }
   },
   mounted () {
-    document.documentElement.scrollTop = 0
     const { address } = this.$route.params
     this.$nextTick(() => {
       this.init({ address: address.toLowerCase() })

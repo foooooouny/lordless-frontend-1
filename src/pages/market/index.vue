@@ -291,7 +291,6 @@ export default {
     // }
   },
   mounted () {
-    document.documentElement.scrollTop = 0
     this.$nextTick(() => {
       const pn = parseInt(this.$route.query.page || 1)
       this.getLdbs({ pn })
