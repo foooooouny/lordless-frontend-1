@@ -177,7 +177,7 @@ export default {
       const browserInit = !this.browser.default
 
       const web3Opt = this.$root.$children[0].web3Opt
-      const web3Init = !web3Opt.web3js.default && !web3Opt.error
+      const web3Init = !web3Opt.web3js.default
       // const userInit = !this.userInfo.default
       console.log('browserInit', browserInit, web3Init)
       if (browserInit && web3Init) {
@@ -232,7 +232,7 @@ export default {
           duration: 3500
         })
       }
-      // if (!this.isInit) return false
+      if (!this.isInit) return false
       this.initModels()
       console.log('---- this.statusType', this.statusType)
 

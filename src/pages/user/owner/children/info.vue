@@ -285,7 +285,7 @@
               <div class="v-flex d-flex col-flex assets-estimated-cnt">
                 <p class="card-cnt-tip">Valued by USD</p>
                 <div class="v-flex d-flex col-flex f-auto-center card-cnt-box estimated-cnt-box">
-                  <h1 class="TTFontBlack">${{ overviews.estimated || 0 | formatDecimal }}</h1>
+                  <h1 class="TTFontBlack">$<count-up class="inline-block" :endVal="overviews.estimated || 0" :decimals="4" :duration="2.5"></count-up></h1>
                   <!-- <p class="">USD</p> -->
                 </div>
               </div>

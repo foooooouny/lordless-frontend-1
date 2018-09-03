@@ -43,10 +43,9 @@ const _CountUp = {
   watch: {
     endVal: {
       handler (value) {
-        const that = this
-
-        if (that.instance && isFunction(that.instance.update) && this.isReady) {
-          that.instance.update(value)
+        if (this.instance && isFunction(this.instance.update) && this.isReady) {
+          console.log('------ change endVal')
+          this.instance.update(value)
         } else {
           this.init()
         }
@@ -56,6 +55,7 @@ const _CountUp = {
   },
   methods: {
     init () {
+      console.log('this.endVal', this.endVal)
       if (this.instance) {
         return
       }
@@ -102,7 +102,7 @@ const _CountUp = {
     }
   },
   mounted () {
-    if (this.isReady) this.init()
+    if (this.isReady && !this.instance) this.init()
   },
   beforeDestroy () {
     this.uninit()
