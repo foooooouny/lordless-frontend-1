@@ -61,8 +61,8 @@
                     </span>
                   </el-tooltip>
                 </p>
-                <p v-if="userInfo.tags && userInfo.tags.length" class="user-eamil">{{ userInfo.email }}</p>
-                <p class="d-flex f-wrap f-align-center user-types">
+                <p class="user-eamil">{{ userInfo.email }}</p>
+                <p v-if="userInfo.tags && userInfo.tags.length" class="d-flex f-wrap f-align-center user-types">
                   <span class="inline-block" v-for="(tag, index) of userInfo.tags.slice(0, 20)" :key="index">{{ tag }}</span>
                 </p>
               </div>

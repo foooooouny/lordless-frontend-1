@@ -324,6 +324,9 @@
   .#{$media}cursor-pointer {
     cursor: pointer;
   }
+  .#{$media}cursor-no-drop {
+    cursor: no-drop;
+  }
   .#{$media}hover-underline {
     &:hover {
       text-decoration: underline;
