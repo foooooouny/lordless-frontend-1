@@ -275,6 +275,8 @@ export default {
 
     /**
      * 糖果领取动画
+     * @param {Number} a 二次项系数
+     * @param {Number} speed 动画速率
      */
     receiveAnimate (candy, { before = -1, duration = 1000, tname = 'Cubic', ttype = 'easeInOut' } = {}, cb) {
       const scrollLeft = Math.max(document.documentElement.scrollLeft, document.body.scrollLeft)
