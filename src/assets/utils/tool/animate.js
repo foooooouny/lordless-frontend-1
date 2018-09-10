@@ -174,3 +174,114 @@ export const Tween = {
     }
   }
 }
+
+// 已知抛物线两个点的坐标，求抛物线 二次项系数 Quadratic
+export const getBezierQuadratic = (a, b) => {
+  const x1 = a.x
+  const y1 = a.y
+  const x2 = b.x
+  const y2 = b.y
+  return (x1 * y2 - y1 * x2) / (x1 * x2 * x2 - x1 * x1 * x2)
+}
+
+// 获取抛物线顶点
+export const getVertex = ({ v1, v2 = { x: 0, y: 0 } } = {}) => {
+  if (!v1) return null
+  const x2 = v1.x
+  const y2 = v1.y
+  const vx = x2 - v2.x
+  const vy = y2 - v2.y
+  const rate = vx > 0 ? 1 : -1
+
+  // 圆的半径
+  // x1 * x1 + x2 * x2 = r * r
+  const r = Math.sqrt(vx * vx + vy * vy) / 2
+  const vertex = {}
+
+  // vertex.x * vertex.x = r * r - (vy / 2) * (vy / 2) = r * r - (vy * vy / 4)
+  vertex.x = rate * (Math.sqrt(r * r - (vy * vy / 4)))
+  vertex.y = (r - (vy / 2))
+  return vertex
+}
+
+/**
+ * 抛物线公式
+ * @param {Number} rate 方向
+ * @param {Number} time 当前时间
+ * @param {Number} duration 持续时间
+ * @param {Number} a 纵向加速度
+ * @param {Number} sx 水平位移量
+ * @param {Number} sy 垂直位移量
+ * @return {Object} x, y 坐标
+ */
+export const bezierPath = ({ time = 0, duration = 1000, a = 5000, sx = 1000, sy = 0 } = {}) => {
+  const ta = duration / 1000
+  const t = time / 1000
+  sy = Math.abs(sy)
+
+  // 根据总时间求出 x 轴及 y 轴方向的初速度
+  const v0x = sx / ta
+  const v0y = sy / ta - 1 / 2 * a * ta
+
+  // 物理抛物线
+  // s = v1 * t + 1 / 2 * a * t * t
+  const x = v0x * t
+  const y = v0y * t + 1 / 2 * a * t * t
+  return { x, y }
+}
+
+/**
+ * 糖果领取动画
+ * @param {Number} a 二次项系数
+ * @param {Number} speed 动画速率
+ */
+export const receiveAnimate = (current, target, { before = -1, duration = 1000 } = {}, cb) => {
+  const scrollLeft = Math.max(document.documentElement.scrollLeft, document.body.scrollLeft)
+
+  const scrollTop = Math.max(document.documentElement.scrollTop, document.body.scrollTop)
+  // 四边缘的坐标
+  const currentEle = current.getBoundingClientRect()
+  const targetEle = target.getBoundingClientRect()
+
+  // 移动元素的中心点坐标
+  const currentCenter = {
+    x: currentEle.left + (currentEle.right - currentEle.left) / 2 + scrollLeft,
+    y: currentEle.top + (currentEle.bottom - currentEle.top) / 2 + scrollTop
+  }
+
+  // 目标元素位置
+  const targetCenter = {
+    x: targetEle.left + (targetEle.right - targetEle.left) / 11 * 5 + scrollLeft,
+    y: targetEle.top + (targetEle.bottom - targetEle.top) / 11 * 5 + scrollTop
+  }
+
+  // 相对坐标位置
+  const { sx, sy } = {
+    sx: targetCenter.x - currentCenter.x,
+    sy: currentCenter.y - targetCenter.y
+  }
+
+  let startt = 0
+
+  // timestamp 时间戳,当前动画执行了多久
+  const step = (timestamp) => {
+    if (!startt) startt = timestamp
+    const time = timestamp - startt
+    let { x, y } = bezierPath({ time, duration, a: 6000, sx, sy })
+
+    if (Math.abs(x) >= Math.abs(sx)) {
+      x = sx
+      y = y > 0 ? Math.abs(sy) : -Math.abs(sy)
+    }
+
+    current.style.transform = `translate3d(${x}px, ${y}px, 0) translateZ(0)`
+
+    if (x !== sx && duration > time) {
+      window.requestAnimationFrame(step)
+    } else {
+      const cdata = { coords: { x, y } }
+      if (cb) cb(cdata)
+    }
+  }
+  return window.requestAnimationFrame(step)
+}
