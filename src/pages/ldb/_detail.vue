@@ -24,9 +24,4 @@ export default {
   }
 }
 </script>
-<style lang="scss" scoped>
-  .ldb-detail-box {
-    @include margin('top', -90px, 1.5);
-  }
-</style>
 
