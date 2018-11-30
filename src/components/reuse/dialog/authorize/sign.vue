@@ -1,6 +1,6 @@
 <template>
-  <div v-if="value" class="text-center authorize-sign-box">
-    <div class="authorize-login-container" v-if="!register">
+  <div v-if="visible" class="text-center authorize-sign-box">
+    <div v-if="web3Loading || !isRegister || userChecking" class="authorize-login-container">
       <div class="inline-block lordless-shadow" :style="`border-radius: ${avatar.radius};`">
         <lordless-blockies
           :scale="avatar.scale"
@@ -11,7 +11,7 @@
       <div class="login-cnt-box">
         <div class="login-cnt-top">
           <p class="TTFontBolder">Wallet address</p>
-          <p class="login-info-text">{{ account }}</p>
+          <p class="text-break login-info-text">{{ account || 'Welcome to LORDLESS!' }}</p>
         </div>
         <p class="login-markline"></p>
         <div>
@@ -19,17 +19,45 @@
             class="TTFontBolder lordless-message-btn login-btn"
             theme="deep-blue"
             shadow
-            :loading="userChecking"
-            :disabled="userChecking"
+            :loading="web3Loading || userChecking"
+            :disabled="web3Loading || userChecking"
             @click="relogin">Login</lordless-btn>
         </div>
       </div>
     </div>
-    <div class="authorize-sign-container" v-if="register">
+    <div v-else-if="termsDialogModel">
+      <div class="authorize-sign-terms authorize-sign-term">
+        <h1 class="TTFontBolder">Term of use</h1>
+        <div class="overflow term-cnt-box">
+          <terms class="dialog light"/>
+        </div>
+        <p class="term-btn-box">
+          <lordless-btn
+            class="d-inline-flex f-align-center term-btn"
+            theme="blue"
+            @click="termAgree('terms')">Done</lordless-btn>
+        </p>
+      </div>
+    </div>
+    <div v-else-if="privacyDialogModel">
+      <div class="authorize-sign-terms authorize-sign-privacy">
+        <h1 class="TTFontBolder">Term of use</h1>
+        <div class="overflow term-cnt-box">
+          <privacy class="dialog light"/>
+        </div>
+        <p class="term-btn-box">
+          <lordless-btn
+            class="d-inline-flex f-align-center term-btn"
+            theme="blue"
+            @click="termAgree('privacy')">Done</lordless-btn>
+        </p>
+      </div>
+    </div>
+    <div v-else class="authorize-sign-container">
       <h1 class="TTFontBolder">Create Account</h1>
       <div class="text-left authorize-sign-cnt">
         <p>We use your email to send you notifications around collectible activity such as ones you buy and sell. We'll never share your email with anyone else.</p>
-        <div class="authorize-sign-input">
+        <div class="authorize-sign-input authorize-sign-email">
           <ld-input
             v-model="signInputs.email.model"
             :theme="signInputs.email.theme"
@@ -37,39 +65,37 @@
             required
             :regex="signInputs.email.regex"
             @change="emailChange"
-            @blur="emailBlur">
-          </ld-input>
+            @blur="emailBlur"/>
         </div>
-        <p>For display purposes only (we show it instead of your wallet address). It doesn't need to be unique.</p>
-        <div class="authorize-sign-input">
+        <p class="sm-hidden">For display purposes only (we show it instead of your wallet address). It doesn't need to be unique.</p>
+        <div class="authorize-sign-input authorize-sign-nickname">
           <ld-input
             v-model="signInputs.nickName.model"
             type="text"
             :placeholder="signInputs.nickName.placeholder"
             :maxlength="signInputs.nickNamemaxlength"
             @change="nicknameChange"
-            @blur="nickNameBlur">
-          </ld-input>
+            @blur="nickNameBlur"/>
         </div>
         <div class="authorize-terms-box">
-          <p>Please read our <span @click.stop="termsModel = true">Terms of Use</span> and <span @click.stop="privacyModel = true">Privacy Policy</span>.</p>
+          <p>Please read our <span @click.stop="termsDialogModel = true">Terms of Use</span> and <span @click.stop="privacyDialogModel = true">Privacy Policy</span>.</p>
           <div class="d-flex f-align-center authorize-terms-item">
             <div class="authorize-sign-checkbox" :class="{ 'active': termModels.terms }">
               <check-box v-model="termModels.terms"/>
             </div>
-            <span>I have read and agree to the LORDLESS Terms of Use.</span>
+            <span @click.stop="chooseTerm('terms')">I have read and agree to the LORDLESS Terms of Use.</span>
           </div>
           <div class="d-flex f-align-center authorize-terms-item">
             <div class="authorize-sign-checkbox" :class="{ 'active': termModels.privacy }">
               <check-box v-model="termModels.privacy"/>
             </div>
-            <span>I have read and agree to the LORDLESS Privacy Policy.</span>
+            <span @click.stop="chooseTerm('privacy')">I have read and agree to the LORDLESS Privacy Policy.</span>
           </div>
           <div class="d-flex f-align-center authorize-terms-item">
             <div class="authorize-sign-checkbox" :class="{ 'active': termModels.notice }">
               <check-box v-model="termModels.notice"/>
             </div>
-            <span>I wish to receive marketing updates (optional).</span>
+            <span @click.stop="chooseTerm('notice')">I wish to receive marketing updates (optional).</span>
           </div>
         </div>
       </div>
@@ -80,12 +106,6 @@
         :disabled="!signRequired"
         @click="signUp">Sign Up</lordless-btn>
     </div>
-    <terms-dialog
-      v-model="termsModel"
-      @agree="termAgree('terms')"/>
-    <privacy-dialog
-      v-model="privacyModel"
-      @agree="termAgree('privacy')"/>
   </div>
 </template>
 
@@ -94,6 +114,9 @@ import LdInput from '@/components/stories/input'
 import CheckBox from '@/components/stories/checkbox'
 import TermsDialog from '@/components/reuse/dialog/sign/terms.vue'
 import PrivacyDialog from '@/components/reuse/dialog/sign/privacy.vue'
+
+import Privacy from '@/components/content/sign/privacy.vue'
+import Terms from '@/components/content/sign/terms.vue'
 
 import { getUserByAddress } from 'api'
 
@@ -108,7 +131,7 @@ export default {
       type: Boolean,
       default: false
     },
-    openStatus: {
+    visible: {
       type: Boolean,
       default: false
     },
@@ -120,15 +143,23 @@ export default {
           radius: '20px'
         }
       }
+    },
+    account: {
+      type: String,
+      default: 'Welcome to LORDLESS!'
+    },
+    web3Loading: {
+      type: Boolean,
+      default: false
     }
   },
   data: () => {
     return {
       userChecking: false,
-      register: false,
+      isRegister: false,
 
-      termsModel: false,
-      privacyModel: false,
+      termsDialogModel: false,
+      privacyDialogModel: false,
 
       // 条款状态
       termModels: {
@@ -156,13 +187,24 @@ export default {
     }
   },
   computed: {
-    account () {
-      return this.$root.$children[0].web3Opt.address || window.localStorage.getItem('currentAddress')
-    },
+
+    // 判断注册信息格式是否有效
     signRequired () {
       const { nickName, email } = this.signInputs
       const { terms, privacy } = this.termModels
       return terms && privacy && nickName.required && email.required
+    }
+  },
+  watch: {
+    value (val) {
+      if (val) this.checkRegister()
+    },
+
+    // 监听 account改变并且 sign dialog 在打开情况下，重新 check register
+    account (val) {
+      if (val && this.value) {
+        this.checkRegister()
+      }
     }
   },
   components: {
@@ -170,28 +212,38 @@ export default {
     CheckBox,
 
     TermsDialog,
-    PrivacyDialog
+    PrivacyDialog,
+
+    Privacy,
+    Terms
   },
   methods: {
     ...mapActions('user', [
       actionTypes.USER_META_LOGIN
     ]),
 
+    chooseTerm (type) {
+      this.$set(this.termModels, type, !this.termModels[type])
+    },
+
+    // 重新登陆
     relogin () {
       if (this.userChecking) return
+
       // metamask 是否被打开
       this.metamaskChoose = true
       this[actionTypes.USER_META_LOGIN]({ cb: (err) => {
-        if (!err) this.$emit('success')
         this.metamaskChoose = false
+        if (!err) this.$emit('success')
       }})
     },
 
+    // 检查用户是否已经注册过
     async checkRegister (address = this.account) {
       console.log('check user sign')
       this.userChecking = true
       const res = await getUserByAddress(address)
-      if (res.code === 1000 && !res.data) this.register = true
+      if (res.code === 1000 && !res.data) this.isRegister = true
       else if (res.code !== 1000) {
         this.$notify.error({
           title: 'error!',
@@ -199,8 +251,27 @@ export default {
           position: 'bottom-right',
           duration: 2500
         })
-      } else this.register = false
+      } else this.isRegister = false
       this.userChecking = false
+    },
+
+    // 注册账户
+    signUp () {
+      if (!this.signRequired) return
+      const { email, nickName } = this.signInputs
+
+      // metamask 控制开关
+      this.metamaskChoose = true
+      this[actionTypes.USER_META_LOGIN]({
+        nickName: nickName.model,
+        email: email.model,
+        cb: () => {
+          this.metamaskChoose = false
+
+          this.reset()
+
+          this.$emit('success')
+        }})
     },
 
     emailChange ({ required }) {
@@ -220,27 +291,21 @@ export default {
     },
 
     termAgree (type) {
+      this[`${type}DialogModel`] = false
       this.$set(this.termModels, type, true)
     },
 
-    signUp () {
-      if (!this.signRequired) return
-      const { email, nickName } = this.signInputs
-
-      // metamask 是否被打开
-      this.metamaskChoose = true
-      this[actionTypes.USER_META_LOGIN]({
-        nickName: nickName.model,
-        email: email.model,
-        cb: () => {
-          this.$emit('success')
-          this.metamaskChoose = false
-        }})
-    }
-  },
-  watch: {
-    openStatus (val) {
-      if (val && this.value) this.checkRegister()
+    reset () {
+      this.$set(this.signInputs.nickName, 'model', '')
+      this.$set(this.signInputs.email, 'model', '')
+      this.$set(this, 'termModels', {
+        terms: false,
+        privacy: false,
+        notice: false
+      })
+      this.termsDialogModel = false
+      this.privacyDialogModel = false
+      this.isRegister = false
     }
   },
   mounted () {
@@ -278,10 +343,10 @@ export default {
     }
   }
   .login-markline {
+    margin: 15px auto 30px;
     height: 0;
     border-bottom: 1px dashed #fff;
-    @include width(50%, 1);
-    @include margin-around(15px, auto, 30px, auto, 1);
+    @include width(60%, 0.75);
   }
   // .authorize-sign-box {
   //   max-width: 600px;
@@ -293,8 +358,9 @@ export default {
   // }
   .authorize-sign-container {
     >h1 {
-      @include margin('bottom', 40px, 1);
-      @include fontSize(36px, 1.2);
+      margin-bottom: 40px;
+      @include margin('bottom', 16px, 1, -1);
+      @include fontSize(36px, 1.5);
     }
     >p {
       @include fontSize(14px, 1);
@@ -304,7 +370,7 @@ export default {
     }
   }
   .authorize-terms-box {
-    padding-top: 30px;
+    // padding-top: 30px;
     >p {
       margin-bottom: 10px;
       >span {
@@ -314,17 +380,19 @@ export default {
     }
   }
   .authorize-sign-input {
-    margin: 25px auto 30px;
+    margin: 0 auto;
     width: 250px;
     line-height: 30px;
     font-size: 18px;
+    color: #fff;
     overflow: hidden;
-    ::placeholder {
-      color: #ddd;
-    }
+    @include margin('top', 25px, -2);
+    @include margin('bottom', 30px, -2);
   }
+
   .authorize-terms-item {
-    font-size: 18px;
+    // font-size: 18px;
+    @include fontSize(18px, 1.15);
     &:not(:first-of-type) {
       margin-top: 8px;
     }
@@ -356,5 +424,47 @@ export default {
     //     }
     //   }
     // }
+  }
+  .authorize-sign-terms {
+    >h1 {
+      margin-bottom: 5px;
+      font-size: 24px;
+    }
+  }
+  .term-cnt-box {
+    padding-right: 10px;
+    margin-right: -10px;
+    color: #fff;
+    min-height: 300px;
+    @include viewport-unit('height', 55vh);
+    &::-webkit-scrollbar {
+      width: 7px;
+    }
+    &::-webkit-scrollbar-thumb {
+      // height: 10px;
+      background: #fff;
+      border-radius: 5px;
+    }
+  }
+  .term-btn-box {
+    margin-top: 30px;
+  }
+  .term-btn {
+    padding: 12px 15px;
+  }
+
+  @media screen and (max-width: 768px) {
+    .authorize-sign-input {
+      width: 230px;
+      line-height: 24px;
+      font-size: 16px;
+    }
+    .authorize-sign-email {
+      margin-top: 8px;
+    }
+    .authorize-sign-nickname {
+      margin-top: 14px;
+      margin-bottom: 16px;
+    }
   }
 </style>

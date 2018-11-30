@@ -1,7 +1,7 @@
 <template>
   <div class="mobile-market">
-    <div id="mobile-market-container" class="d-flex col-flex container relative mobile-market-container">
-      <section class="text-center relative mobile-market-header">
+    <div id="mobile-market-container" class="d-flex col-flex relative mobile-market-container">
+      <section id="mobile-market-header" class="text-center relative mobile-market-header">
         <h2>Marketplace</h2>
         <p class="TTFontBolder">Marketplace is an easy, convenient way to buy and sell your Tavern.</p>
         <!-- <span v-if="isHistory" class="inline-block market-back-svg" @click="history.go(-1)">
@@ -10,7 +10,13 @@
           </svg>
         </span> -->
       </section>
-      <section id="market-sort-section" class="relative market-sort-section">
+      <mobile-sort-bar
+        :sortItems="sortItems"
+        :total="ldbs.total"
+        :scrollHeight="scrollHeight"
+        @sort="sortHandle"
+        @order="orderHandle"/>
+      <!-- <section id="market-sort-section" class="relative market-sort-section">
         <div id="mobile-market-sort" class="alone-layer lg-d-flex f-align-center relative mobile-market-sort">
           <div class="relative market-sort-container" :class="{ 'sort': sortOpen }">
             <div class="d-flex f-align-center market-sort-bar">
@@ -43,7 +49,7 @@
             </ul>
           </div>
         </div>
-      </section>
+      </section> -->
       <section class="d-flex col-flex v-flex mobile-market-ldbs">
         <el-row :gutter="40" v-if="ldbsLoading">
           <el-col
@@ -109,15 +115,20 @@
 import { getChainLdbs } from 'api'
 import { hasClass, removeClass, addClass } from 'utils/tool'
 
-import SwitchInput from '@/components/stories/switchInput'
+import MobileSortBar from '@/components/reuse/_mobile/sortBar'
+// import SwitchInput from '@/components/stories/switchInput'
 import MobileBuildingCard from '@/components/reuse/_mobile/card/building'
 
 import MobileSkeletionBuilding from '@/components/skeletion/_mobile/building'
 import SkeletionPager from '@/components/skeletion/pagination'
 
+import { layoutMixins } from '@/mixins'
+
 // import throttle from 'lodash/throttle'
 
 export default {
+  name: 'lordless-market',
+  mixins: [layoutMixins],
   data: () => {
     return {
       // ldb 建筑列表
@@ -132,7 +143,7 @@ export default {
       ldbsLoading: true,
 
       // sort model
-      sortOpen: false,
+      // sortOpen: false,
 
       ldbSort: 'popular',
 
@@ -144,17 +155,17 @@ export default {
       },
 
       // order model
-      ldbOrder: 'desc',
+      ldbOrder: 'desc'
 
-      orderItems: [
-        {
-          value: 'desc',
-          label: 'High to Low'
-        }, {
-          value: 'asc',
-          label: 'Low to High'
-        }
-      ]
+      // orderItems: [
+      //   {
+      //     value: 'desc',
+      //     label: 'High to Low'
+      //   }, {
+      //     value: 'asc',
+      //     label: 'Low to High'
+      //   }
+      // ]
 
     }
   },
@@ -162,21 +173,30 @@ export default {
     // isHistory () {
     //   return window.history.length > 1
     // },
+    scrollHeight () {
+      const dom = document.getElementById('mobile-market-header')
+      console.log('scrollHeight', dom)
+      return dom ? dom.offsetHeight : 200
+    },
+    isMobile () {
+      return this.$root.$children[0].isMobile
+    },
     pageScrollE () {
       return document.getElementById('mobile-market-container')
     }
   },
-  watch: {
-    sortOpen (val) {
-      if (val) {
-        addClass('overflow-hidden', document.body)
-      } else {
-        removeClass('overflow-hidden', document.body)
-      }
-    }
-  },
+  // watch: {
+  //   sortOpen (val) {
+  //     if (val) {
+  //       this.prohibitScroll()
+  //     } else {
+  //       this.freeScroll()
+  //     }
+  //   }
+  // },
   components: {
-    SwitchInput,
+    MobileSortBar,
+    // SwitchInput,
     MobileBuildingCard,
 
     // SkeletionList,
@@ -221,30 +241,40 @@ export default {
       this.ldbsLoading = false
     },
 
-    toggleSort () {
-      this.sortOpen = !this.sortOpen
+    sortHandle (sort) {
+      this.ldbSort = sort
+      this.getLdbs({ sort })
     },
 
-    chooseSort (value) {
-      if (this.ldbSort === value) return
-
-      document.documentElement.scrollTop = 100
-
-      this.ldbSort = value
-      this.toggleSort()
-      this.getLdbs({ sort: value })
+    orderHandle (order) {
+      this.ldbOrder = order
+      this.getLdbs({ order })
     },
+
+    // toggleSort () {
+    //   this.sortOpen = !this.sortOpen
+    // },
+
+    // chooseSort (value) {
+    //   if (this.ldbSort === value) return
+
+    //   document.documentElement.scrollTop = 100
+
+    //   this.ldbSort = value
+    //   this.toggleSort()
+    //   this.getLdbs({ sort: value })
+    // },
 
     /**
      * order 改变触发事件
      */
-    orderChange (order) {
-      if (this.sortOpen) {
-        this.toggleSort()
-      }
-      document.documentElement.scrollTop = 100
-      this.getLdbs({ order })
-    },
+    // orderChange (order) {
+    //   if (this.sortOpen) {
+    //     this.toggleSort()
+    //   }
+    //   document.documentElement.scrollTop = 100
+    //   this.getLdbs({ order })
+    // },
 
     /**
      * 页码改变触发事件
@@ -260,18 +290,36 @@ export default {
      * market 滚动监听
      */
     marketScroll () {
+      let navHeight = 0
+      let _navHeight = 0
+
       const h = document.getElementsByClassName('mobile-market-header')[0].offsetHeight
       const pdom = document.getElementById('market-sort-section')
       const sdom = document.getElementById('mobile-market-sort')
+      const isMobile = this.isMobile
       const func = () => {
+        // 因为 mobile navbar 高度固定，所以第一次取到之后就可以保存到变量
+        if (isMobile && !navHeight) {
+          if (_navHeight) navHeight = _navHeight
+          else {
+            const mobileNavbar = document.getElementById('mobile-nav-bar')
+            if (mobileNavbar) navHeight = mobileNavbar.offsetHeight
+          }
+          _navHeight = navHeight
+        }
         const y = document.documentElement.scrollTop || window.pageYOffset || document.body.scrollTop
         const bool = hasClass('fixed', sdom)
         if (y <= h && bool) {
+          navHeight = 0
+          sdom.style.top = '0px'
+
           removeClass('fixed', sdom)
           pdom.appendChild(sdom)
         } else if (y > h && !bool) {
           addClass('fixed', sdom)
           document.body.appendChild(sdom)
+
+          sdom.style.top = navHeight + 'px'
         }
       }
       document.addEventListener('scroll', func)
@@ -289,7 +337,7 @@ export default {
     this.$nextTick(() => {
       const pn = parseInt(this.$route.query.page || 1)
       this.getLdbs({ pn })
-      this.marketScroll()
+      // this.marketScroll()
     })
   }
 }
@@ -297,13 +345,14 @@ export default {
 
 <style lang="scss" scoped>
 
-  .mobile-market {
-    background-color: #f8f8f8;
-  }
+  // .mobile-market {
+  //   background-color: #f8f8f8;
+  // }
   .mobile-market-container {
-    padding: 0;
-    max-width: 768px;
-    @include viewport-unit(min-height, 100vh, 80px);
+    // margin: 0 -20px;
+    // padding: 0;
+    // max-width: 768px;
+    // @include viewport-unit(min-height, 100vh, 80px);
   }
 
   /**
@@ -346,12 +395,16 @@ export default {
     z-index: 1;
     &.fixed {
       position: fixed;
+      // position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       background-color: #f8f8f8;
       box-shadow: 0 2px 5px 0px rgba(0, 0, 0, .25);
       z-index: 9;
+      .market-sort-bar {
+        padding: 8px 20px;
+      }
     }
   }
   .market-sort-container {
@@ -416,6 +469,7 @@ export default {
     background-color: #f8f8f8;
     box-sizing: border-box;
     z-index: 2;
+    transition: all .35s;
   }
   .mobile-market-total {
     color: #999;
@@ -487,8 +541,8 @@ export default {
    * market-pagination-box     --begin
    */
   .market-pagination-box {
-    margin-top: 50px;
-    margin-bottom: 60px;
+    margin-top: 25px;
+    margin-bottom: 35px;
   }
   .market-pagination-switch {
     font-size: 18px;

@@ -1,7 +1,7 @@
 <template>
   <div class="d-flex user-candy-box">
     <div class="d-flex v-flex col-flex user-candy-container">
-      <h1 class="d-flex f-align-baseline text-cap user-candy-title">
+      <h1 class="d-flex f-align-baseline text-cap owner-children-title">
         <span class="v-flex">Candy</span>
         <el-tooltip class="item" effect="dark" content="Coming soon" placement="left">
           <span>
@@ -20,7 +20,7 @@
         </el-tooltip>
       </h1>
       <div
-        class="v-flex d-flex user-candy-tabs">
+        class="v-flex d-flex relative onwer-children-cnt user-candy-tabs">
         <el-tabs
           class="relative v-flex"
           v-model="candyTab"
@@ -28,7 +28,7 @@
           <el-tab-pane
             label="Balance"
             name="balance">
-            <div v-if="candyLoading" class="user-candy-skeletion">
+            <!-- <div v-if="candyLoading" class="user-candy-skeletion">
               <p></p>
               <div class="d-flex f-justify-around" v-for="item of [1,2]" :key="item">
                 <p class="skeletion-breath"></p>
@@ -36,10 +36,19 @@
                 <p class="skeletion-breath"></p>
                 <p class="skeletion-breath"></p>
               </div>
-            </div>
+            </div> -->
             <transition name="ld-hide-fade">
+              <div v-if="candyLoading" class="user-candy-skeletion">
+                <p></p>
+                <div class="d-flex f-justify-around" v-for="item of [1,2]" :key="item">
+                  <p class="skeletion-breath"></p>
+                  <p class="skeletion-breath"></p>
+                  <p class="skeletion-breath"></p>
+                  <p class="skeletion-breath"></p>
+                </div>
+              </div>
               <div
-                v-if="!userAssets.length && !candyLoading"
+                v-else-if="!userAssets.total && !candyLoading"
                 class="d-flex v-flex col-flex f-auto-center text-center no-asset-box absolute">
                 <svg>
                   <use xlink:href="#icon-no-candy"/>
@@ -56,9 +65,7 @@
                   </span>
                 </div>
               </div>
-            </transition>
-            <transition name="ld-hide-fade">
-              <div v-show="userAssets.length && !candyLoading" class="relative">
+              <div v-else class="relative">
                 <div class="d-flex f-align-center text-center candy-tabs-title">
                   <el-col :span="5" :xs="8">Asset</el-col>
                   <el-col :span="5" :xs="8">Quantity</el-col>
@@ -68,7 +75,7 @@
                 </div>
                 <div
                   class="d-flex f-align-center text-center candy-balance-item candy-list-item"
-                  v-for="(asset, index) of userAssets"
+                  v-for="(asset, index) of userAssets.list"
                   :key="index">
                   <el-col :span="5" :xs="8" class="d-flex f-auto-center candy-symbol">
                     <p class="d-flex f-align-end">
@@ -102,11 +109,11 @@
           </el-tab-pane>
           <el-tab-pane
             class="d-flex candy-tab-box"
-            :class="{ 'cursor-no-drop': !userAssets.length }"
-            :disabled="!userAssets.length"
+            :class="{ 'cursor-no-drop': !userAssets.total }"
+            :disabled="!userAssets.total"
             label="History"
             name="history">
-            <div v-if="candyLoading" class="user-candy-skeletion">
+            <!-- <div v-if="candyLoading" class="user-candy-skeletion">
               <p></p>
               <div class="d-flex f-justify-around" v-for="item of [1,2]" :key="item">
                 <p class="skeletion-breath"></p>
@@ -114,10 +121,19 @@
                 <p class="skeletion-breath"></p>
                 <p class="skeletion-breath"></p>
               </div>
-            </div>
+            </div> -->
             <transition name="ld-hide-fade">
+              <div v-if="candyLoading" class="user-candy-skeletion">
+                <p></p>
+                <div class="d-flex f-justify-around" v-for="item of [1,2]" :key="item">
+                  <p class="skeletion-breath"></p>
+                  <p class="skeletion-breath"></p>
+                  <p class="skeletion-breath"></p>
+                  <p class="skeletion-breath"></p>
+                </div>
+              </div>
               <div
-                v-if="!userRecords.total && !candyLoading"
+                v-else-if="!userRecords.total && !candyLoading"
                 class="d-flex v-flex col-flex f-auto-center text-center no-asset-box absolute">
                 <svg>
                   <use xlink:href="#icon-no-candy"/>
@@ -134,9 +150,7 @@
                   </span>
                 </div>
               </div>
-            </transition>
-            <transition name="ld-hide-fade">
-              <div v-show="userRecords.total && !candyLoading" class="v-flex relative candy-rewards-box">
+              <div v-else class="v-flex relative candy-rewards-box">
                 <div class="d-flex f-align-center text-center candy-tabs-title">
                   <el-col :span="aside.show ? 8 : 4" :xs="8">Asset</el-col>
                   <el-col :span="aside.show ? 8 : 6" :xs="8">Type</el-col>
@@ -319,8 +333,13 @@ export default {
 
       candyLoading: true,
 
-      // 用户账户
-      userAssets: [],
+      // 用户账户信息
+      userAssets: {
+        list: [],
+        pn: 1,
+        ps: 10,
+        total: 0
+      },
 
       // 用户交易记录信息
       userRecords: {
@@ -348,7 +367,7 @@ export default {
       'userInfo'
     ]),
     showPagination () {
-      return this.candyTab !== 'balance'
+      return this.candyTab !== 'balance' && this.userRecords.total && !this.candyLoading
     },
     pageScrollPE () {
       return document.getElementById('user-main-content')
@@ -407,7 +426,7 @@ export default {
       if (this.candyTab !== 'balance') return
       this.candyLoading = true
       const res = await getUserAssets()
-      if (res.code === 1000) {
+      if (res.code === 1000 && res.data) {
         this.userAssets = res.data
       }
       this.candyLoading = false
@@ -472,10 +491,6 @@ export default {
     }
   }
 
-  .user-candy-title {
-    font-size: 36px;
-    color: #999;
-  }
   .user-withdraw-btn {
     padding: 10px 15px;
     font-size: 16px;
@@ -516,11 +531,11 @@ export default {
     bottom: -70px;
   }
 
-  .user-candy-tabs {
-    position: relative;
-    @include margin('top', 35px, 1);
-    @include margin('bottom', 120px, 1);
-  }
+  // .user-candy-tabs {
+  //   position: relative;
+  //   @include margin('top', 35px, 1);
+  //   @include margin('bottom', 120px, 1);
+  // }
 
   .candy-tabs-title {
     color:#bbb;

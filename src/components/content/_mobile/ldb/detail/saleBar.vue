@@ -153,6 +153,7 @@ export default {
 <style lang="scss" scoped>
   .mobile-sale-bar {
     position: fixed;
+    // position: absolute;
     bottom: 0;
     left: 0;
     width: 100%;

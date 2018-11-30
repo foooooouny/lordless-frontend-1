@@ -24,7 +24,8 @@
       :userInfo="userInfo"
       @enter="contentShow = true"
       @setHome="setHome"
-      @receive="receiveCandy"/>
+      @receive="receiveCandy"
+      @refresh="init(ldbInfo._id)"/>
     <section id="ldb-detail-content" class="ldb-detail-content" :class="{ 'show': contentShow }">
       <div class="container detail-container md d-flex sm-col-flex">
         <div class="detail-cnt-left v-flex">
@@ -45,13 +46,13 @@
             :loading="ldbTaskLoading"
             @receive="receiveTask"/>
 
-          <mobile-quests-tool
+          <!-- <mobile-quests-tool
             v-if="isMobile"
             :quests="ldbTasks | ldbGroupTasks"
             :ldbId="ldbInfo._id"
             :owner="owner"
             :loading="ldbTaskLoading"
-            @receive="receiveTask"/>
+            @receive="receiveTask"/> -->
 
           <records-tool
             v-if="!isMobile"
@@ -134,7 +135,7 @@ import MobileHeaderTool from '@/components/content/_mobile/ldb/detail/ldbHeader'
 import LdbDatasTool from './ldbDatas'
 
 import TasksNowTool from './tasksNow'
-import MobileQuestsTool from '@/components/content/_mobile/ldb/detail/quests'
+// import MobileQuestsTool from '@/components/content/_mobile/ldb/detail/quests'
 
 import RecordsTool from './records'
 import MobileRecordsTool from '@/components/content/_mobile/ldb/detail/records'
@@ -284,7 +285,7 @@ export default {
     LdbDatasTool,
 
     TasksNowTool,
-    MobileQuestsTool,
+    // MobileQuestsTool,
 
     RecordsTool,
     MobileRecordsTool,
@@ -303,7 +304,7 @@ export default {
   },
   methods: {
     ...mapActions('user', [
-      actionTypes.USER_UPT_USER_AP,
+      actionTypes.USER_UPT_USER_PARAMS,
       actionTypes.USER_SET_USER_BY_TOKEN,
       actionTypes.USER_SET_USER_HOME
     ]),
@@ -531,10 +532,11 @@ export default {
         // 根据 tokenId 获取建筑链上信息
         const ldb = await NFTsCrowdsale.methods('getAuction', [tokenId])
         console.log('buy => submitBuy --- getAuction:', ldb[2].toNumber(), tokenId)
+        // alert(ldb[2].toNumber())
 
         this.metamaskChoose = true
 
-        const { gasPrice } = web3Opt
+        const { gasPrice, address } = web3Opt
 
         // 传输的合约参数
         const payByEth = {
@@ -547,55 +549,45 @@ export default {
         const gas = (await NFTsCrowdsale.estimateGas(payByEth.name, payByEth.values)) || 600000
 
         // 根据链上信息购买建筑
-        NFTsCrowdsale.methods(payByEth.name, payByEth.values.concat([{ gas, gasPrice, value: ldb[2] }]))
-          .then(tx => {
-            console.log('----- buyHandle tx', tx)
-            // this.buyPending = true
-            this.metamaskChoose = false
+        const params = {
+          gas,
+          gasPrice,
+          data: NFTsCrowdsale.payByEth.getData(tokenId),
+          value: ldb[2],
+          // memo: 'buy a tavern by lordless',
+          // feeCustomizable: true,
+          to: NFTsCrowdsale.address,
+          from: address
+        }
 
-            this.checkTxEvent({ tx, action: payByEth.name, tokenId }, () => {
-              this.$router.push('/owner/activity')
-            })
+        // 使用自有封装对象
+        window.lordlessMethods.buy(params).then(tx => {
+          console.log('----- buyHandle tx', tx)
+          // this.buyPending = true
+          this.metamaskChoose = false
 
-            // 修改 isBuying 状态
-            // this.$set(this.ldbPendings, 'isBuying', true)
-            // this.$nextTick(() => this.$router.push('/owner/activity'))
-
-            // const loop = () => {
-            //   // 轮询 tx 状态
-            //   this.checkTxEvent({ tx, action: payByEth.name, tokenId }, ({ data, err }) => {
-            //     if (err) return
-            //     if (data.isPending) return loop()
-
-            //     // 关闭 buy dialog
-            //     // this.buyModel = false
-
-            //     this.$set(this.ldbPendings, 'isBuying', false)
-
-            //     // 购买完毕，改变 ldbInfo
-            //     // 改变市场状态
-            //     this.$set(this.ldbInfo.chain.auction, 'isOnAuction', false)
-
-            //     // 改变领主信息
-            //     if (this.userInfo.address && this.userInfo.address !== this.ldbInfo.lord.address) {
-            //       this.$set(this.ldbInfo, 'lord', this.userInfo)
-            //     }
-
-            //     this.$set(this.ldbRecords, 'list', [].concat(this.ldbRecords.list, data))
-            //     this.$set(this.ldbRecords, 'total', this.ldbRecords.total + 1)
-
-            //     this.$nextTick(() => {
-            //       // this.orderModel = true
-            //       // this.checkOwner(tokenId)
-            //     })
-            //   })
-            // }
-            // loop()
+          this.checkTxEvent({ tx, action: payByEth.name, tokenId }, () => {
+            this.$router.push('/owner/activity')
           })
+        })
           .catch((err) => {
             console.log('err', err)
             this.metamaskChoose = false
           })
+        // NFTsCrowdsale.methods(payByEth.name, payByEth.values.concat([{ gas, gasPrice, value: ldb[2] }]))
+        //   .then(tx => {
+        //     console.log('----- buyHandle tx', tx)
+        //     // this.buyPending = true
+        //     this.metamaskChoose = false
+
+        //     this.checkTxEvent({ tx, action: payByEth.name, tokenId }, () => {
+        //       this.$router.push('/owner/activity')
+        //     })
+        //   })
+        //   .catch((err) => {
+        //     console.log('err', err)
+        //     this.metamaskChoose = false
+        //   })
 
         // this.buyModel = true
       } catch (err) {
@@ -762,7 +754,8 @@ export default {
       if (res.code === 1000) {
         cbData.data = res.data
 
-        this.$notify({
+        // 非移动端使用 notify 的形式做提示
+        !this.isMobile && this.$notify({
           type: 'success',
           title: 'Cheers!',
           message: `+ ${res.data.executor.reward.count.toFixed(4)} ${ldbTaskType.candyType.symbol.toUpperCase()}`,
@@ -770,8 +763,8 @@ export default {
           duration: 1500
         })
 
-        // 根据消耗的ap值，手动更新 userInfo 的ap值
-        this[actionTypes.USER_UPT_USER_AP](res.data.apCost)
+        // 根据消耗的ap值及得到的经验值，手动更新 userInfo 的ap值及经验值
+        this[actionTypes.USER_UPT_USER_PARAMS]({ ap: res.data.apCost, activeness: res.data.executor.activeness })
 
         // 根据返回的建筑经验，修改当前建筑经验
         this.$set(this.ldbInfo, 'activeness', this.ldbInfo.activeness + res.data.ldb.activeness)
@@ -793,7 +786,7 @@ export default {
           this.$set(this.ldbInfo, 'apLeft', 0)
         }
       }
-      return cb(cbData)
+      return cb && cb(cbData)
     },
 
     /**
@@ -821,7 +814,7 @@ export default {
         cbData.data = res.data
 
         // 根据消耗的ap值，手动更新 userInfo 的ap值
-        this[actionTypes.USER_UPT_USER_AP](res.data.apCost)
+        this[actionTypes.USER_UPT_USER_PARAMS](res.data.apCost)
 
         console.log('ldbInfo', this.ldbInfo)
         // 根据返回的建筑经验，修改当前建筑经验
@@ -843,7 +836,7 @@ export default {
       if (this.$refs.approvedTask) this.$refs.approvedTask.clearApproved()
       this.initStatus()
       this.initContractStatus()
-      this.clearCInterval({ all: true })
+      // this.clearCInterval({ all: true })
 
       this.ldbInfo = null
       this.ldbRecords = null

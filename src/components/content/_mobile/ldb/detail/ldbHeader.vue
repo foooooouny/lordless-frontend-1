@@ -21,13 +21,14 @@
                   class="inline-block mobile-circle-candy"
                   :style="`animation-delay: ${index * .35}s;`"
                   :data-num="`≈ ${(candy.ldbTaskType.priceInUSD * candy.ldbTaskType.candyType.USD2TokenCount).toFixed(4)}`"
+                  :data-tip="`+ ${(candy.ldbTaskType.priceInUSD * candy.ldbTaskType.candyType.USD2TokenCount).toFixed(4)} ${candy.ldbTaskType.candyType.symbol.toLocaleUpperCase()}`"
                   @click="receiveCandy(candy)">
                   <svg>
                     <use xlink:href="#ldb-candy-circle"/>
                   </svg>
                   <span class="inline-block mobile-candies-coin">
                     <svg>
-                      <use :xlink:href="`#coin-${candy.ldbTaskType.candyType.symbol.toLowerCase()}`"/>
+                      <use :xlink:href="`#coin-${candy.ldbTaskType.candyType.symbol.toLocaleLowerCase()}`"/>
                     </svg>
                   </span>
                 </span>
@@ -99,6 +100,13 @@
                       :max="countUp.nAP.end"
                       :gradient="progress.gradient"/>
                   </div>
+                  <p class="d-flex user-progress-desc recover-at" v-if="new Date(info.recoverAt) - new Date() + 5000 > 0">
+                    <countdown class="task-status-time" @countdownend="$emit('refresh')" :time="new Date(info.recoverAt) - new Date() + 5000" :interval="1000" tag="p">
+                      <!-- <template slot-scope="props">{{ parseInt(props.days) || props.hours || props.minutes || props.seconds }}{{ parseInt(props.days) ? 'd' : (props.hours ? 'h' : (props.minutes ? 'm' : props.seconds ? 's' : '')) }}</template> -->
+                      <template slot-scope="props">{{ props | formatDue(3) }}</template>
+                    </countdown>
+                    to refill.
+                  </p>
                 </div>
                 <figcaption class="d-flex f-align-center">
                   <div class="v-flex d-flex f-align-center detail-lord-box">
@@ -171,6 +179,7 @@ export default {
   },
   data: (vm) => {
     return {
+      apTimer: null,
       rendered: false,
       // animate: false,
       candyCoords: {},
@@ -202,22 +211,26 @@ export default {
       }
     }
   },
+  computed: {
+    apLeft () {
+      return this.info.apLeft
+    }
+  },
   watch: {
     /**
      * 监听当前建筑 apLeft
      */
     apLeft (val) {
       const func = () => {
-        return () => {
-          let _this = this
-          clearTimeout(_this.apTimer)
-          _this.apTimer = null
-          _this.apTimer = setTimeout(() => {
-            _this.initCurrentAPCU({ end: val })
-          }, 600)
-        }
+        clearTimeout(this.apTimer)
+        this.apTimer = null
+        this.apTimer = setTimeout(() => {
+          this.initCurrentAPCU({ end: val })
+          clearTimeout(this.apTimer)
+          this.apTimer = null
+        }, 600)
       }
-      func()()
+      func()
     },
 
     // 监听外部传入的总任务，如果和 allTasks 不相等，重新生成 candyTasks
@@ -305,9 +318,10 @@ export default {
      * 领取糖果
      */
     async receiveCandy (task) {
-      this.$root.$children[0].alertModel = true
+      // this.$root.$children[0].mobileAlertModel = true
+
       // 移动端，暂时阻断
-      if (task) return
+      // if (task) return
       if (task.status !== 'processing') return
 
       this.receiveBoxShow = true
@@ -361,66 +375,6 @@ export default {
       }
       candy.addEventListener(transitionEvent(), func)
 
-      // const intoBoxCandy = document.getElementById('receive-box-candy')
-
-      // const cloneCandyId = `clone_${candyId}`
-
-      // receiveAnimate(cCandy, document.getElementById('header-receive-box'), { duration: 500 }, ({ boxCenter, coords, beforeEnd }) => {
-      //   if (!hasClass('animate', rbox)) addClass('animate', rbox)
-      //   else rbox.style.animationPlayState = 'running'
-
-      //   const rboxFunc = () => {
-      //     rbox.removeEventListener(animationIterationEvent(), rboxFunc)
-      //     rbox.style.animationPlayState = 'paused'
-
-      //     animateAfter = true
-      //     removeCandy()
-      //   }
-      //   rbox.addEventListener(animationIterationEvent(), rboxFunc)
-
-      //   const eatFunc = () => {
-      //     console.log('-------- eatFunc')
-      //     const cloneCandy = document.getElementById(cloneCandyId)
-      //     cloneCandy.removeEventListener(animationEndEvent(), eatFunc)
-      //     // cloneCandy.style.animationPlayState = 'paused'
-      //     addClass('hidden', cloneCandy)
-
-      //     intoBoxCandy.style = ''
-
-      //     // 如果当前糖果是box关闭前的最后那个糖果，关闭box
-      //     if (this.receiveEndCandy === candyId) {
-      //       rbox.style = ''
-      //       removeClass('animate', rbox)
-      //       setTimeout(() => {
-      //         this.receiveBoxShow = false
-      //       }, 0)
-      //     }
-      //   }
-
-      //   if (intoBoxCandy.firstChild) intoBoxCandy.removeChild(intoBoxCandy.firstChild)
-
-      //   const cloneCandy = cCandy.cloneNode(true)
-
-      //   cloneCandy.setAttribute('id', cloneCandyId)
-      //   cloneCandy.style = ''
-      //   cloneCandy.className = 'receive-clone-candy animate'
-      //   intoBoxCandy.appendChild(cloneCandy)
-
-      //   document.getElementById(cloneCandyId).addEventListener(animationEndEvent(), eatFunc)
-
-      //   const ccr = cCandy.getClientRects()[0]
-      //   const ibcr = document.getElementById('receive-box-container').getClientRects()[0]
-
-      //   const ibcleft = ccr.left - ibcr.left
-      //   const ibctop = ccr.top - ibcr.top
-      //   intoBoxCandy.style = `transform: translate3d(${ibcleft}px, ${ibctop}px, 0);`
-
-      //   if (!iserror) {
-      //     addClass('hidden', cCandy)
-      //   }
-      //   cCandy.style.transform = ''
-      // })
-
       this.$emit('receive', task, ({ errorMsg, data } = {}) => {
         if (!data) {
           // 设置当前dom鼠标形态
@@ -433,7 +387,7 @@ export default {
           // restart candy animation
           iserror = true
           removeClass('hidden', cCandy)
-          removeClass('move', cCandy)
+          removeClass('animate', candy)
           return
         }
 
@@ -677,6 +631,17 @@ export default {
     border-radius: 5px;
     overflow: hidden;
   }
+  .user-progress-desc {
+    margin-top: 3px;
+    font-size: 14px;
+    color: #bbb;
+    &.recover-at {
+      margin-top: 8px;
+    }
+  }
+  .task-status-time {
+    width: 110px;
+  }
 
   // header-candy-layer
 
@@ -818,23 +783,23 @@ export default {
     }
   }
 
-  // @keyframes candyAfterAnimate {
-  //   0% {
-  //     transform: translate(-40%, 5px) translateZ(0);
-  //     animation-timing-function: ease-in;
-  //   }
-  //   20% {
-  //     transform: translate(-40%, 0px) translateZ(0);
-  //     opacity: 1;
-  //   }
-  //   50% {
-  //     animation-timing-function: ease-out;
-  //   }
-  //   100% {
-  //     transform: translate(-40%, -5px) translateZ(0);
-  //     opacity: 0;
-  //   }
-  // }
+  @keyframes candyAfterAnimate {
+    0% {
+      transform: translate(-40%, 5px) translateZ(0);
+      animation-timing-function: ease-in;
+    }
+    20% {
+      transform: translate(-40%, 0px) translateZ(0);
+      opacity: 1;
+    }
+    50% {
+      animation-timing-function: ease-out;
+    }
+    100% {
+      transform: translate(-40%, -5px) translateZ(0);
+      opacity: 0;
+    }
+  }
   @keyframes candiesShow {
     0% {
       opacity: 0;
@@ -854,22 +819,22 @@ export default {
           opacity: 0;
           transition: opacity .5s ease-out;
         }
-        // &::before {
-        //   opacity: 0;
-        //   transition-duration: 0s;
-        // }
-        // &::after {
-        //   animation: candyAfterAnimate 1s 1;
-        // }
+        &::before {
+          opacity: 0;
+          transition-duration: 0s;
+        }
+        &::after {
+          animation: candyAfterAnimate 1s 1;
+        }
       }
     }
-    // &.afterAnimate {
-    //   .mobile-circle-candy {
-    //     &::after {
-    //       animation: candyAfterAnimate 1s 1;
-    //     }
-    //   }
-    // }
+    &.afterAnimate {
+      .mobile-circle-candy {
+        &::after {
+          animation: candyAfterAnimate 1s 1;
+        }
+      }
+    }
   }
   .mobile-circle-candy {
     position: relative;
@@ -901,7 +866,7 @@ export default {
       color: #EA3C53;
     }
     &::after {
-      content: attr(data-msg);
+      content: attr(data-tip);
       position: absolute;
       top: -25px;
       left: 50%;

@@ -1,31 +1,34 @@
 <template>
   <div
     class="alone-layer cursor-pointer user-avatar-box"
-    :class="[{ 'shadow': shadow && userInfo.address }, theme]"
-    :style="`font-size: ${fontSize};border-radius: ${radius};`"
-    @click="$router.push(`/owner/info`)">
-    <div class="d-flex f-align-center" v-if="userInfo.address">
-      <div class="text-right user-avatar-info" :class="{ 'order-1 left-margin': leftInfo }" v-if="showInfo">
-        <p class="text-ellipsis user-nickname">
-          <span v-if="userInfo.nickName">{{ userInfo.nickName }}</span>
-          <span v-else>{{ userInfo.address | splitAddress({ before: 6, end: 2 }) }}</span>
-        </p>
-        <p class="d-flex f-align-center" :class="leftInfo ? 'f-justify-start' : 'f-justify-end'">
-          <span class="inline-block line-height-1">
-            <svg>
-              <use xlink:href="#icon-color-star"/>
-            </svg>
-          </span>
-          <span>AP {{ userInfo.ap }}</span>
-        </p>
+    :class="[{ 'shadow': shadow && userInfo.address, 'mobile': mobile }, theme]"
+    :style="`border-radius: ${radius};`"
+    @click.stop="clickHandle">
+    <div class="d-flex f-align-end" v-if="userInfo.address">
+      <div class="v-flex d-flex f-align-center">
+        <div class="text-right user-avatar-info" :class="{ 'order-1 left-margin': leftInfo }" v-if="showInfo">
+          <p class="text-ellipsis user-nickname">
+            <span v-if="userInfo.nickName">{{ userInfo.nickName }}</span>
+            <span v-else>{{ userInfo.address | splitAddress({ before: 6, end: 2 }) }}</span>
+          </p>
+          <p class="d-flex f-align-center" :class="leftInfo ? 'f-justify-start' : 'f-justify-end'">
+            <span class="inline-block line-height-1">
+              <svg>
+                <use xlink:href="#icon-color-star"/>
+              </svg>
+            </span>
+            <span>AP {{ userInfo.ap }}</span>
+          </p>
+        </div>
+        <lordless-blockies
+          class="user-avatar-poster"
+          :radius="radius"
+          :seed="userInfo.address"
+          :scale="scale"
+          :theme="theme">
+        </lordless-blockies>
       </div>
-      <lordless-blockies
-        class="user-avatar-poster"
-        :radius="radius"
-        :seed="userInfo.address"
-        :scale="scale"
-        :theme="theme">
-      </lordless-blockies>
+      <!-- <p class="lg-hidden user-avatar-logout" @click.stop="logout">Logout</p> -->
     </div>
     <lordless-btn
       v-if="!userInfo.address && !tip"
@@ -45,13 +48,10 @@
 <script>
 import Authorize from '@/components/reuse/dialog/authorize'
 
-import { dialogMixins } from '@/mixins'
-
-import { mapState, mapActions } from 'vuex'
-import { actionTypes } from '@/store/types'
+import { dialogMixins, userMixins } from '@/mixins'
 export default {
   name: 'user-avatar',
-  mixins: [dialogMixins],
+  mixins: [ dialogMixins, userMixins ],
   props: {
     shadow: {
       type: Boolean,
@@ -65,10 +65,10 @@ export default {
       type: String,
       default: '10px'
     },
-    fontSize: {
-      type: String,
-      default: '20px'
-    },
+    // fontSize: {
+    //   type: String,
+    //   default: '20px'
+    // },
     loginText: {
       type: String,
       default: 'Get started'
@@ -90,28 +90,23 @@ export default {
     tip: {
       type: Boolean,
       default: false
+    },
+    mobile: {
+      type: Boolean,
+      default: false
     }
+    // emitLink: {
+    //   type: Boolean,
+    //   default: false
+    // }
   },
   components: {
     Authorize
   },
-  computed: {
-    ...mapState('user', [
-      'userInfo'
-    ])
-  },
   methods: {
-    ...mapActions('user', [
-      actionTypes.USER_META_LOGIN
-    ]),
-
-    async sign () {
-      const authorize = this.$refs.authorize.checkoutAuthorize()
-      console.log('authorize', authorize)
-      if (!authorize) return
-
-      // 检测 user 是否注册过
-      this[actionTypes.USER_META_LOGIN]()
+    clickHandle () {
+      this.$router.push(`/owner/info`)
+      this.$emit('click')
     }
   }
 }
@@ -150,6 +145,16 @@ export default {
         }
       }
     }
+    &.mobile {
+      .user-avatar-info {
+        >p {
+          font-size: 14px;
+        }
+      }
+      .top-login-text {
+        font-size: 16px;
+      }
+    }
   }
   .user-avatar-info {
     >p {
@@ -183,4 +188,7 @@ export default {
     color: $--text-blue-purple-color;
     font-size: 18px;
   }
+  // .user-avatar-logout {
+  //   font-size: 16px;
+  // }
 </style>

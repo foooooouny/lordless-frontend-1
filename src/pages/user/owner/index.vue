@@ -8,7 +8,7 @@
     </Loading> -->
     <aside class="d-flex lg-col-flex sm-row-flex ld-user-navgation">
       <div class="d-flex f-auto-center user-navgation-logo sm-hidden">
-        <header-logo theme="deep-blue"></header-logo>
+        <header-logo theme="deep-blue"/>
       </div>
       <div class="d-flex col-flex v-flex">
         <ul class="d-flex v-flex sm-row-flex lg-col-flex user-navgation-list">
@@ -64,17 +64,14 @@
 </template>
 
 <script>
-import HeaderLogo from '@/components/layout/header/logo'
-import LdHeader from '@/components/layout/header'
+import HeaderLogo from '@/components/content/layout/header/logo'
+import LdHeader from '@/components/content/layout/header'
 import Authorize from '@/components/reuse/dialog/authorize'
 // import Loading from '@/components/stories/loading'
 
-import { dialogMixins } from '@/mixins'
-
-import { actionTypes } from '@/store/types'
-import { mapState, mapActions } from 'vuex'
+import { dialogMixins, userMixins } from '@/mixins'
 export default {
-  mixins: [ dialogMixins ],
+  mixins: [ dialogMixins, userMixins ],
   data: () => {
     return {
       navgations: [
@@ -119,15 +116,11 @@ export default {
         showLogo: false,
         inverse: false,
         transparent: true,
-        inherit: true
+        inherit: true,
+        zIndex: 99
       },
       loading: true
     }
-  },
-  computed: {
-    ...mapState('user', [
-      'userInfo'
-    ])
   },
   components: {
     // Loading,
@@ -137,10 +130,6 @@ export default {
     Authorize
   },
   methods: {
-    ...mapActions('user', [
-      actionTypes.USER_SET_USER_BY_TOKEN,
-      actionTypes.USER_LOGOUT
-    ]),
 
     fCloseAuthorize () {
       if (this.loading) this.$router.push('/')
@@ -149,10 +138,6 @@ export default {
     async checkUser () {
       const authorize = this.$refs.ownerAuthorize.checkoutAuthorize()
       this.loading = !this.userInfo.address && !authorize
-    },
-
-    async logout () {
-      await this[actionTypes.USER_LOGOUT]({ reset: true })
     }
   },
   watch: {
@@ -166,6 +151,10 @@ export default {
   }
 }
 </script>
+
+<style lang="scss">
+  @import '@/assets/stylus/reuse/single/user_info.scss';
+</style>
 
 <style lang="scss" scoped>
   .owner-cnt-fade-enter-active {
@@ -265,7 +254,9 @@ export default {
   }
 
   .ld-user-content {
-    padding: 90px 0 0;
+    padding: 0;
+    @include padding('top', 90px, -2);
+    @include padding('top', 70px, 1, -2);
     background-color: #f4f4f4;
     @include overflow();
   }

@@ -64,6 +64,7 @@ export default {
     // el-popup-parent--hidden
     &.fixed {
       position: fixed;
+      // position: absolute;
     }
     &.absolute {
       position: absolute;

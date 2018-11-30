@@ -11,11 +11,12 @@ export default {
       balance: 0,
       gasPrice: 0,
       address: null,
-      coinbase: null,
+      // coinbase: null,
       error: null,
       web3js: { default: true },
       isConnected: false,
-      networkId: null
+      networkId: null,
+      loading: true
     },
     defaultWeb3Opt: {
 
@@ -26,7 +27,7 @@ export default {
       address: null,
 
       // coinbase 地址
-      coinbase: null,
+      // coinbase: null,
 
       // 错误信息
       error: null,
@@ -38,7 +39,9 @@ export default {
       isConnected: false,
 
       // 网络网段
-      networkId: null
+      networkId: null,
+
+      loading: true
     }
   },
   mutations: {

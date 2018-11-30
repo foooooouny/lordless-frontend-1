@@ -62,7 +62,7 @@
             </div>
             <div class="v-flex reward-cnt-item">
               <p>Related Tavern</p>
-              <p>#{{ info.ldb.info }}</p>
+              <p>#{{ info.ldb.info._id }}</p>
               <h2 class="color-blue">+{{ info.ldb.activeness }} <span>ac</span></h2>
             </div>
             <div class="reward-cnt-item">

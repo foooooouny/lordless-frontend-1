@@ -1,9 +1,12 @@
 <template>
-  <transition name="ld-hide-fade">
+  <transition
+    :name="popstateModel ? 'ld-hide-in-fade' : 'ld-hide-fade'"
+    @after-leave="afterLeave">
     <div
       v-if="visible"
       class="alone-layer ld-ldb-dialog"
-      @click="$emit('update:visible', false)">
+      @click="$emit('update:visible', false)"
+      @touchmove.prevent>
     </div>
   </transition>
 </template>
@@ -18,6 +21,12 @@ export default {
     appendToBody: {
       type: Boolean,
       default: true
+    },
+
+    // popstate 改变状态
+    popstateModel: {
+      type: Boolean,
+      default: false
     }
   },
   watch: {
@@ -28,6 +37,10 @@ export default {
     }
   },
   methods: {
+    afterLeave () {
+      console.log(' -- mask after leave popstate', this.popstateModel)
+      this.$emit('closed')
+    },
     destroy () {
       if (this.$el && this.$el.parentNode) {
         this.$el.parentNode.removeChild(this.$el)
@@ -43,6 +56,7 @@ export default {
 <style lang="scss" scoped>
   .ld-ldb-dialog {
     position: fixed;
+    // position: absolute;
     top: 0;
     left: 0;
     width: 100%;

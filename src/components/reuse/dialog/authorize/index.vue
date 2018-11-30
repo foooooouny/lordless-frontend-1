@@ -10,7 +10,8 @@
     :close-on-press-escape="false"
     :show-close="false"
     @open="$emit('open')"
-    @close="$emit('close')">
+    @close="$emit('close')"
+    @closed="authorizeClosed">
     <div class="lordless-message-box">
       <span
         @click.stop="closeDialog"
@@ -21,31 +22,29 @@
       <Crowdsale
         ref="crowdsale"
         v-model="showCrowsale"
-        :openStatus="authorizeDialog"
         :avatar="avatar"
         :address="address"
-        @pending="crowdsalePending"></Crowdsale>
+        @pending="crowdsalePending"/>
 
       <Telegram
         ref="telegram"
-        v-model="showTelegram"
-        :openStatus="authorizeDialog"
+        :visible.sync="showTelegram"
         :avatar="avatar"
         :address="address"
         @close="authorizeDialog = false"
-        @telegram="$emit('telegram', $event)"></Telegram>
+        @telegram="$emit('telegram', $event)"/>
 
       <Status
         v-if="showStatus && !hideStatus"
-        :type="statusType">
-      </Status>
+        :type="statusType"/>
 
       <Sign
         ref="signAuthorize"
-        v-model="showSign"
-        :openStatus="authorizeDialog"
-        @success="checkoutAuthorize()">
-      </Sign>
+        v-model="authorizeDialog"
+        :visible="showSign"
+        :account="account"
+        :web3Loading="web3Opt.loading"
+        @success="authorizeDialog = false"/>
     </div>
   </el-dialog>
 </template>
@@ -56,13 +55,15 @@ import Crowdsale from './crowdsale'
 import Status from './status'
 import Sign from './sign'
 
-import { contractMixins } from '@/mixins'
+import { addClass, removeClass } from 'utils/tool'
+
+import { contractMixins, publicMixins } from '@/mixins'
 
 import { actionTypes } from '@/store/types'
 import { mapState, mapActions } from 'vuex'
 export default {
   name: 'authorize-dialog',
-  mixins: [contractMixins],
+  mixins: [contractMixins, publicMixins],
   props: {
     avatar: {
       type: Object,
@@ -116,43 +117,44 @@ export default {
     ...mapState('status', [
       'browser'
     ]),
+    ...mapState('layout', [
+      'metaOpen'
+    ]),
     ...mapState('contract', [
       'isCrowdsaleApproved'
     ]),
 
-    isMobile () {
-      return this.$root.$children[0].isMobile
-    },
-
+    // 登陆之后的用户地址
     address () {
       return this.userInfo._id
     },
 
-    unBrowser () {
-      return !this.browser.Chrome && !this.browser.Firefox
-    },
-
-    unMetamask () {
-      const web3Opt = this.$root.$children[0].web3Opt
-      return !web3Opt.web3js || !web3Opt.networkId || !web3Opt.isConnected
-    },
-
-    lockedMetamask () {
-      const web3Opt = this.$root.$children[0].web3Opt
-      return !web3Opt.address
-    },
-
-    unallowMetamask () {
-      const web3Opt = this.$root.$children[0].web3Opt
-      return parseInt(web3Opt.networkId) !== parseInt(process.env.APPROVED_NETWORK_ID)
-    },
-
+    // web3 连接状态
     statusType () {
-      if (this.unBrowser) return 'browser'
-      else if (this.unMetamask) return 'missing'
-      else if (this.lockedMetamask) return 'locked'
-      else if (this.unallowMetamask) return 'network'
-      else return null
+      const web3Opt = this.web3Opt
+
+      // const web3Loading = web3Opt.loading
+      const authorizeInit = this.authorizeInit
+
+      const unBrowser = !this.isMobile && !this.browser.Chrome && !this.browser.Firefox
+      // const unBrowser = false
+
+      const unMetamask = web3Opt.web3js.default || !web3Opt.networkId || !web3Opt.isConnected
+      // const unMetamask = false
+
+      const lockedMetamask = !web3Opt.address
+      // const lockedMetamask = false
+
+      const unallowMetamask = process.env.NODE_ENV !== 'development' && parseInt(web3Opt.networkId) !== parseInt(process.env.APPROVED_NETWORK_ID)
+      // const unallowMetamask = false
+
+      switch (true) {
+        case authorizeInit && unBrowser: return 'browser'
+        case authorizeInit && unMetamask: return 'missing'
+        case authorizeInit && lockedMetamask: return 'locked'
+        case authorizeInit && unallowMetamask: return 'network'
+        default: return null
+      }
     },
 
     showStatus () {
@@ -177,32 +179,78 @@ export default {
     },
 
     web3Error () {
-      return this.$root.$children[0].web3Opt.error
+      return this.web3Opt.error
     },
 
-    // 合约内部状态初始化状态
+    // web3初始化状态
     authorizeInit () {
+      // 浏览器检测初始化状态
       const browserInit = !this.browser.default
 
-      const web3Opt = this.$root.$children[0].web3Opt
-      const web3Init = !web3Opt.web3js.default
-      // const userInit = !this.userInfo.default
-      console.log('browserInit', browserInit, web3Init)
-      // if (browserInit && web3Init) {
-      //   this.isInit = true
-      //   return true
-      // }
+      // web3 是否在加载
+      const { loading } = this.web3Opt
 
-      return browserInit && web3Init
-    },
+      const _web3js = this.web3Opt.web3js
 
-    account () {
-      return this.$root.$children[0].web3Opt.address
-    },
+      // unlocked 表示当前环境没有 web3
+      const unlockedWeb3 = _web3js.unlocked
+      console.log('browserInit', browserInit, loading, unlockedWeb3)
 
-    metaOpen () {
-      return this.$root.$children[0].metaOpen
+      return unlockedWeb3 || (browserInit && !loading)
     }
+
+    // metaOpen () {
+    //   return this.$root.$children[0].metaOpen
+    // }
+  },
+  watch: {
+
+    showStatus (val) {
+      if (val && this.authorizeInit) {
+        this.initModels()
+      }
+    },
+
+    // 监听用户登陆信息地址
+    address (val) {
+      // 如果地址有效，并且不允许市场判断,关闭
+      if (!this.crowdsale && val) this.authorizeDialog = false
+    },
+    authorizeDialog (val) {
+      const lordless = document.getElementById('lordless')
+      if (val) {
+        this.$nextTick(() => addClass('mobile-dialog-open', lordless))
+      } else {
+        removeClass('mobile-dialog-open', lordless)
+      }
+      this.$emit('blurs', val)
+    },
+
+    // 如果切换了账号，关闭对话框
+    account (val, oVal) {
+      if (!this.autoClose || !this.oVal) return
+      console.log('------------ account', val, oVal)
+      this.checkoutAuthorize()
+      // this.authorizeDialog = false
+    },
+
+    authorizeInit (val) {
+      if (val) {
+        const { loading, isConnected } = this.web3Opt
+        this.$emit('init')
+
+        if (this.isMobile && !loading && !isConnected) {
+          this.authorizeDialog = false
+          // this.$nextTick(() => {
+          //   this.$root.$children[0].mobileAlertModel = true
+          // })
+        }
+      }
+    }
+
+    // metaOpen () {
+    //   return this.$root.$children[0].metaOpen
+    // }
   },
   components: {
     Telegram,
@@ -215,17 +263,42 @@ export default {
       actionTypes.CONTRACT_CHECK_CROWDSALE
     ]),
 
+    authorizeClosed () {
+      // console.log('this.signAuthorize', this.$refs.signAuthorize)
+      this.$refs.signAuthorize && this.$refs.signAuthorize.reset()
+    },
+
     closeDialog () {
       this.$emit('fClose')
       this.authorizeDialog = false
     },
 
-    checkoutAuthorize ({ guide = false, crowdsale = false, telegram = false } = {}) {
-      // 如果是移动端，直接弹出
-      if (this.isMobile) {
-        this.$root.$children[0].alertModel = true
-        return
+    isMobileRead () {
+      const { loading, isConnected } = this.web3Opt
+
+      switch (true) {
+        // 如果是移动端，并且 !locked 返回 false
+        case this.isMobile && !loading && !isConnected:
+        // case this.isMobile:
+          this.authorizeDialog = false
+          this.$nextTick(() => {
+            this.$root.$children[0].mobileAlertModel = true
+          })
+          return false
+
+        // 如果不是移动端，或者移动端含有 web3，返回 true
+        default: return true
       }
+    },
+
+    checkoutAuthorize ({ guide = false, crowdsale = false, telegram = false } = {}) {
+      if (!this.isMobileRead()) return false
+
+      // 如果是移动端，直接弹出
+      // if (this.isMobile) {
+      //   this.$root.$children[0].mobileAlertModel = true
+      //   return
+      // }
 
       // 如果用户不存在，打开对话框，执行下行阻断
       if (!this.address) {
@@ -241,7 +314,9 @@ export default {
       if (telegram && (!this.userInfo.telegram || !this.userInfo.telegram.id)) {
         console.log('----- telegram')
         this.authorizeDialog = true
-        this.showTelegram = true
+        this.$nextTick(() => {
+          this.showTelegram = true
+        })
         return false
       }
 
@@ -258,8 +333,6 @@ export default {
       if (!crowdsale) return true
 
       console.log('---- this.statusType', this.statusType)
-
-      console.log('---- status', this.statusType, !this.address)
 
       /**
        * crowdsale 前检查guide配置是否ok
@@ -293,7 +366,6 @@ export default {
         })
         return false
       }
-      // if (!this.authorizeInit) return false
 
       if (crowdsale) {
         this.showCrowsale = true
@@ -315,6 +387,7 @@ export default {
       this.showSign = false
     },
 
+    // 市场授权 pending 状态处理
     crowdsalePending ({ tx, pass = false }, address = this.address) {
       if (pass) {
         this[actionTypes.CONTRACT_CHECK_CROWDSALE](address)
@@ -328,27 +401,6 @@ export default {
         })
       }
       this.$emit('pending', { tx })
-    }
-  },
-  watch: {
-
-    // 监听用户登陆信息地址
-    address (val) {
-      // 如果地址有效，并且不允许市场判断,关闭
-      if (!this.crowdsale && val) this.authorizeDialog = false
-    },
-    authorizeDialog (val) {
-      this.$emit('blurs', val)
-    },
-
-    // 如果切换了账号，关闭对话框
-    account (val, oVal) {
-      if (!this.autoClose) return
-      this.authorizeDialog = false
-    },
-
-    authorizeInit (val) {
-      if (val) this.$emit('init')
     }
   }
 }

@@ -34,6 +34,9 @@ module.exports = {
     Web3: true,
     web3js: true,
     Sketchfab: true,
-    mapboxgl: true
+    mapboxgl: true,
+    imToken: true,
+    lordlessMethods: true,
+    AMap: true,
   }
 }

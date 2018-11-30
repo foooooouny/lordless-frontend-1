@@ -1,5 +1,5 @@
 <template>
-  <div v-show="value" class="telegram-box">
+  <div v-show="visible" class="telegram-box">
     <div class="text-center telegram-container">
       <div class="inline-block lordless-shadow" :style="`border-radius: ${avatar.radius};`">
         <lordless-blockies
@@ -49,7 +49,7 @@ import { mapState, mapActions } from 'vuex'
 export default {
   mixins: [metamaskMixins],
   props: {
-    value: {
+    visible: {
       type: Boolean,
       default: false
     },
@@ -87,8 +87,9 @@ export default {
     }
   },
   watch: {
-    value (val) {
-      if (val) this.$nextTick(() => this.initTelegram())
+    visible (val) {
+      console.log('telegram watch visible', val)
+      if (val) this.initTelegram()
       else this.removeTelegram()
     },
 
@@ -107,7 +108,7 @@ export default {
       const isTelegram = this.userInfo.telegram && this.userInfo.telegram.id
 
       console.log('---- initTelegram', isTelegram)
-      if (isTelegram) return
+      if (this.isOk) return
       console.log('---- come in telegram')
       // const tgCode = '<script async src="https://telegram.org/js/telegram-widget.js?4" data-telegram-login="samplebot" data-size="large" data-userpic="false" data-onauth="onTelegramAuth(user)" data-request-access="write"><\/script>'
       // document.getElementById('telegram').innerHTML = tgCode
@@ -119,10 +120,19 @@ export default {
       el.setAttribute('data-userpic', false)
       el.setAttribute('data-onauth', 'onTelegramAuth(user)')
       el.setAttribute('data-request-access', 'write')
-      // document.body.appendChild(el)
+      // el.setAttribute('data-auth-url', location.href)
+
       document.getElementById(this.telegramContainer).appendChild(el)
       el.onload = () => {
         this.telegramReady = true
+      }
+      el.onerror = (err) => {
+        this.$notify.error({
+          title: 'Telegram error!',
+          message: err.message,
+          position: 'bottom-right',
+          duration: 3500
+        })
       }
       window.onTelegramAuth = async (user) => {
         const res = await putUserTgAuth(user)

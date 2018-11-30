@@ -61,7 +61,7 @@ module.exports = {
     cssSourceMap: true,
     proxyTable: {
       '/lordless': {
-        target: 'http://localhost:7001',
+        target: 'http://10.229.6.223:7001',
         changeOrigin: true,
         pathRewrite: {'^/lordless': ''}
       },
@@ -78,7 +78,7 @@ module.exports = {
     assetsSubDirectory: 'static',
     assetsDllDirectory: 'static/dll',
     ossPublicPath,
-    assetsPublicPath: `//cdn.lordlessio.com/${ossPublicPath}`,
+    assetsPublicPath: `//lordless.oss-cn-hongkong.aliyuncs.com/${ossPublicPath}`,
 
     /**
      * Source Maps

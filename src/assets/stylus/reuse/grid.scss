@@ -72,9 +72,6 @@
   .#{$media}order-3 {
     order: 3;
   }
-  .#{$media}v-flex {
-    flex: 1;
-  }
   .#{$media}full-width {
     width: 100%;
   }
@@ -257,6 +254,7 @@
     display: inline-block;
     width: 100%;
     color: inherit;
+    font-family: inherit;
     font-size: inherit;
     height: inherit;
     line-height: inherit;
@@ -285,7 +283,7 @@
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .#{$media}overflow-hidden {
-    overflow: hidden;
+    overflow: hidden !important;
   }
   .#{$media}overflow {
     @include overflow();
@@ -306,6 +304,9 @@
   }
   .#{$media}text-center {
     text-align: center;
+  }
+  .#{$media}text-break {
+    word-break: break-all;
   }
   .#{$media}text-nowrap {
     white-space: nowrap;

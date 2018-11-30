@@ -4,7 +4,7 @@
 
 import { mutationTypes, actionTypes } from './types'
 import { getUserByAddress, getUserByToken, getUserHome, login } from '../api'
-import { stringifyParse, getObjStorage } from 'utils/tool'
+import { stringifyParse, getObjStorage, nextAC } from 'utils/tool'
 import web3Store from './web3'
 export default {
   namespaced: true,
@@ -16,10 +16,7 @@ export default {
     userInfo: { default: true },
 
     // user single 用户信息
-    uSingleInfo: {},
-
-    // 用户是否过期
-    userExpired: false
+    uSingleInfo: {}
   },
   mutations: {
 
@@ -49,14 +46,8 @@ export default {
       window.localStorage.setItem('lordless_tokens', JSON.stringify(tokenObj))
     },
 
-    // 改变 userExpired 状态
-    [mutationTypes.USER_SET_USER_EXPIRED]: (state, payload = true) => {
-      state.userExpired = Boolean(payload)
-    },
-
     // 存储 userHome 信息
     [mutationTypes.USER_SET_USER_HOME]: (state, { home, update = false } = {}) => {
-      console.log('home', home)
       if (!update) state.userHome = stringifyParse(home)
       else state.userHome = home ? stringifyParse(Object.assign({}, state.userHome, home)) : {}
     }
@@ -79,7 +70,8 @@ export default {
      * metaMask login
      */
     [actionTypes.USER_META_LOGIN]: ({ state, commit, dispatch }, { email, nickName, cb } = {}) => {
-      const { web3js, address } = web3Store.state.web3Opt
+      const _address = window.localStorage.getItem('currentAddress')
+      const { address = _address } = web3Store.state.web3Opt
       if (!address) return
 
       // 登陆
@@ -88,19 +80,18 @@ export default {
         if (res.code === 1000) {
           dispatch(actionTypes.USER_SET_USER_TOKEN, ({ address: addr, token: res.token }))
           await dispatch(actionTypes.USER_SET_USER_BY_TOKEN)
-          if (cb) cb()
+          cb && cb()
         }
       }
-      // 取消 expired 状态
-      commit(mutationTypes.USER_SET_USER_EXPIRED, false)
-      const str = web3js.toHex('lordless')
 
-      // 调起 metamask personal_sign 方法
-      web3js.personal.sign(str, web3js.eth.defaultAccount, (err, result) => {
+      const message = 'lordless'
+
+      // 调用封装的 sign 方法
+      window.lordlessMethods.sign(message, address).then(({ err, result }) => {
         if (!err) {
           if (result) loginFunc(result, address)
         } else {
-          if (cb) cb(err)
+          cb && cb(err)
         }
       })
     },
@@ -111,18 +102,15 @@ export default {
     [actionTypes.USER_SET_USER_BY_TOKEN]: async ({ state, commit }) => {
       // 根据token请求用户信息
       const res = await getUserByToken()
+      console.log('--- get user by token', res)
+
       if (res.code === 1000 && res.data) {
         commit(mutationTypes.USER_SET_USER_INFO, res.data)
-        if (state.userExpired) commit(mutationTypes.USER_SET_USER_EXPIRED, false)
-        return true
-      }
-      if (res.code === 9001 && res.errorMsg === 'jwt expired') {
-        commit(mutationTypes.USER_SET_USER_EXPIRED, true)
-        commit(mutationTypes.USER_SET_USER_INFO, {})
+      } else if (res.code === 9001) {
+        commit(mutationTypes.USER_SET_USER_INFO, { default: false })
       } else {
         commit(mutationTypes.USER_SET_USER_INFO, { default: true })
       }
-      commit(mutationTypes.USER_SET_USER_INFO)
       return false
     },
 
@@ -149,16 +137,21 @@ export default {
       commit(mutationTypes.USER_SET_USER_TOKEN, payload)
     },
 
-    // 改变 user expired
-    [actionTypes.USER_SET_USER_EXPIRED]: ({ commit }, payload) => {
-      payload = Boolean(payload)
-      commit(mutationTypes.USER_SET_USER_EXPIRED, payload)
-    },
+    // 改变用户参数
+    [actionTypes.USER_UPT_USER_PARAMS]: ({ commit, state }, { ap = 0, activeness = 0 }) => {
+      if (!state.userInfo._id) return
+      ap && commit(mutationTypes.USER_UPT_USER_INFO, { ap: state.userInfo.ap - ap })
 
-    // 改变用户ap
-    [actionTypes.USER_UPT_USER_AP]: ({ commit, state }, ap) => {
-      if (!ap) return
-      commit(mutationTypes.USER_UPT_USER_INFO, { ap: state.userInfo.ap - ap })
+      // 增加用户经验，根据当前经验判读是否增加用户等级
+      if (activeness) {
+        let level = state.userInfo.level
+        const _activeness = state.userInfo.activeness + activeness
+        const acleft = nextAC(level)
+        if ((acleft - _activeness) <= 0) {
+          level++
+        }
+        commit(mutationTypes.USER_UPT_USER_INFO, { activeness: _activeness, level })
+      }
     },
 
     /**
