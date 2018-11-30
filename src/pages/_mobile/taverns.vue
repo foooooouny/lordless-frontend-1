@@ -1,7 +1,7 @@
 <template>
-  <div class="mobile-market-page">
-    <mobile-nav-bar text="Marketplace" fixed scroll/>
-    <mobile-market-page
+  <div class="mobile-taverns-page">
+    <mobile-nav-bar text="Taverns" fixed scroll :scrollMark="100"/>
+    <mobile-taverns-page
       ref="market"
       @path="pathChange"
       @openDetail="openDetail"/>
@@ -13,8 +13,7 @@
 </template>
 
 <script>
-import MarketPage from '@/components/content/market'
-import MobileMarketPage from '@/components/content/_mobile/market'
+import MobileTavernsPage from '@/components/content/_mobile/taverns'
 
 import TavernDialog from '@/components/reuse/dialog/ldb/detail'
 
@@ -36,8 +35,7 @@ export default {
     }
   },
   components: {
-    MarketPage,
-    MobileMarketPage,
+    MobileTavernsPage,
 
     TavernDialog
   },
@@ -52,7 +50,7 @@ export default {
   watch: {
     popstateModel (val) {
       console.log('popstate', val, location.pathname)
-      if (val && location.pathname.includes('/market')) {
+      if (val && location.pathname.includes('/taverns')) {
         this.detailModel = false
       }
     }

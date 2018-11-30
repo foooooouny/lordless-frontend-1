@@ -2,7 +2,7 @@
 /**
  * contract store options
  */
-import { NFTsCrowdsale, TavernNFTs } from '@/contract'
+import { NFTsCrowdsale, TavernNFTs, Airdrop } from '@/contract'
 import { mutationTypes, actionTypes } from './types'
 import web3Store from './web3'
 export default {
@@ -24,7 +24,7 @@ export default {
     [mutationTypes.CONTRACT_SET_INSTANCE]: (state, { key, value }) => {
       if (!key) return false
       state[key] = value
-      // window[key] = value
+      window[key] = value
     }
   },
 
@@ -56,6 +56,7 @@ export default {
       // 如果是 monitor 的状态，不重置合约文件
       if (!monitor) {
         commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'NFTsCrowdsale', value: NFTsCrowdsale(web3js) })
+        commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'Airdrop', value: Airdrop(web3js) })
         // commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'Building', value: Building(web3js) })
         commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'TavernNFTs', value: TavernNFTs(web3js) })
         commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'contractReady', value: true })

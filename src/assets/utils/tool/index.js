@@ -227,6 +227,11 @@ export const offsetParent = (current, parent, type) => {
   }
   return dom
 }
+export const scrollTo = (num = 0) => {
+  document.documentElement.scrollTop = num
+  window.pageYOffset = num
+  document.body.scrollTop = num
+}
 export const transitionEvent = () => {
   const el = document.createElement('surface')
   const transitions = {

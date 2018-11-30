@@ -1,5 +1,5 @@
 <template>
-  <section id="mobile-nav-bar" class="TTFontBolder text-center mobile-nav-bar" :class="{ 'is-static': !fixed, 'is-active': fixed && !scroll }">
+  <section :ref="container" id="mobile-nav-bar" class="TTFontBolder text-center mobile-nav-bar" :class="{ 'is-static': !fixed, 'is-active': fixed && !scroll }">
     <div class="relative">
       <p class="TTFontBolder nav-history-icon" v-if="history" @click.stop="$emit('history')">
         <svg>
@@ -25,6 +25,10 @@ import { addClass, removeClass } from 'utils/tool'
 export default {
   name: 'mobile-nav-bar',
   props: {
+    container: {
+      type: String,
+      default: `mobile-nav-${new Date().getTime()}`
+    },
     text: {
       type: String,
       default: 'Marketplace'
@@ -58,11 +62,10 @@ export default {
   },
   methods: {
     scrollListener () {
-      if (this.navbarScrollFunc) document.removeEventListener('scroll', this.navbarScrollFunc)
-      this.navbarScrollFunc = null
+      if (this.navbarScrollFunc) this.destroyScroll()
       // if (!this.scroll || this.pageTitle) return
       let navbarInverse = false
-      const dom = document.getElementById('mobile-nav-bar')
+      const dom = this.$refs[this.container]
       const scrollMark = this.scrollMark
       const func = () => {
         const scrollTop = document.documentElement.scrollTop || window.pageYOffset || document.body.scrollTop
@@ -77,24 +80,39 @@ export default {
       func()
 
       this.navbarScrollFunc = func
-      document.addEventListener('scroll', func)
 
-      this.$once('hook:beforeDestroy', () => {
-        removeClass('is-active', dom)
-        document.removeEventListener('scroll', func)
+      this.$nextTick(() => document.addEventListener('scroll', this.navbarScrollFunc))
+    },
+    init () {
+      console.log(' ---- navbar init', this.scroll, this.fixed)
+      this.$nextTick(() => {
+        if (this.scroll || this.fixed) {
+          document.body.appendChild(this.$el)
+          this.scroll && this.scrollListener()
+        }
       })
+    },
+    destroyScroll () {
+      this.scroll && removeClass('is-active', this.$refs[this.container])
+      document.removeEventListener('scroll', this.navbarScrollFunc)
+      this.navbarScrollFunc = null
+    },
+    destroy () {
+      this.destroyScroll()
+      this.$el && this.$el.parentNode && this.$el.parentNode.removeChild(this.$el)
     }
   },
+  deactivated () {
+    this.destroy()
+  },
+  activated () {
+    this.init()
+  },
   beforeDestroy () {
-    this.$el && this.$el.parentNode.removeChild(this.$el)
+    this.destroy()
   },
   mounted () {
-    this.$nextTick(() => {
-      if (this.scroll || this.fixed) {
-        document.body.appendChild(this.$el)
-        this.scroll && this.scrollListener()
-      }
-    })
+    this.init()
   }
 }
 </script>
