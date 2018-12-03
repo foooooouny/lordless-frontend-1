@@ -1,6 +1,6 @@
 <template>
   <div class="m-building-card" :class="{ 'shadow': shadow }">
-    <figure class="d-flex col-flex f-align-stretch" @click="$emit('choose', info)">
+    <figure class="d-flex col-flex f-align-stretch" @click="chooseTavern">
       <div class="building-header-container">
         <lordless-tavern-poster
           :src="info.ldbIcon.source.preview"
@@ -65,6 +65,9 @@
 
 <script>
 import { originSource } from 'utils/tool'
+
+import { mutationTypes } from '@/store/types'
+import { mapMutations } from 'vuex'
 export default {
   props: {
     info: {
@@ -72,6 +75,10 @@ export default {
       default: () => {}
     },
     shadow: {
+      type: Boolean,
+      default: true
+    },
+    jump: {
       type: Boolean,
       default: true
     }
@@ -99,6 +106,17 @@ export default {
     }
   },
   methods: {
+    ...mapMutations('layout', [
+      mutationTypes.LAYOUT_SET_POP_DIRECTION
+    ]),
+    chooseTavern (e, info = this.info) {
+      if (!this.jump) {
+        this.$emit('choose', info)
+        return
+      }
+      this[mutationTypes.LAYOUT_SET_POP_DIRECTION]('_forward')
+      this.$router.push(`/tavern/${info.id}`)
+    },
     originSource () {
       return originSource(...arguments)
     }

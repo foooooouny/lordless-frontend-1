@@ -4,16 +4,16 @@
       <div class="project-candy-info">
         <p class="d-flex f-align-center candy-info-symbol">
           <span class="inline-block line-height-0 candy-symbol-icon">
-            <svg>
-              <use xlink:href="#coin-less"/>
+            <svg v-if="projectInfo.symbol">
+              <use :xlink:href="`#coin-${projectInfo.symbol.toLocaleLowerCase()}`"/>
             </svg>
           </span>
-          <span class="TTFontBolder inline-block">
-            0x(ZRX)
+          <span class="TTFontBolder inline-block text-upper">
+            {{ projectInfo.coinmarketcap.name }}({{ projectInfo.symbol }})
           </span>
         </p>
         <p class="TTFontBolder candy-claimed-info">
-          2.5K US dollars
+          {{ claimed / projectInfo.USD2TokenCount | formatNumber | formatDecimal }} US dollars
           <span class="TTFontBold">has been claimed.</span>
         </p>
         <div class="project-candy-carousel">
@@ -23,7 +23,11 @@
             </el-carousel-item>
           </el-carousel>
         </div>
-        <promotion-claim class="project-promotion-info"/>
+        <promotion-claim
+          v-if="airdropInfo"
+          class="project-promotion-info"
+          :info="airdropInfo"
+          :claimed.sync="claimed"/>
       </div>
     </section>
     <section class="ld-project-section project-section-intro">
@@ -34,7 +38,7 @@
           <p class="TTFontNormal intro-item-desc">Powering decentralized exchange for everything.</p>
         </div>
         <div class="project-intro-item">
-          <p class="intro-item-title">About 0x</p>
+          <p class="intro-item-title">About {{ projectInfo.coinmarketcap.symbol }}</p>
           <p class="TTFontNormal intro-item-desc">ZRX is an Ethereum token that is used to power the 0x protocol. The protocol itself is designed to allow Ethereum tokens to be traded at a low cost directly from your wallet.</p>
         </div>
         <div class="project-intro-item">
@@ -48,7 +52,7 @@
               </span>
               <p class="v-flex d-flex f-justify-between market-item-right">
                 <span>Price</span>
-                <span>$ 0.4203</span>
+                <span>$ {{ projectInfo.market.price | formatDecimal }}</span>
               </p>
             </li>
             <li class="d-flex f-align-center intro-market-item">
@@ -59,7 +63,7 @@
               </span>
               <p class="v-flex d-flex f-justify-between market-item-right">
                 <span>Market cap</span>
-                <span>$ 209M</span>
+                <span>$ {{ projectInfo.market.marketCap | formatNumber }}</span>
               </p>
             </li>
             <li class="d-flex f-align-center intro-market-item">
@@ -70,7 +74,7 @@
               </span>
               <p class="v-flex d-flex f-justify-between market-item-right">
                 <span>Volume (24h)</span>
-                <span>$ 11M</span>
+                <span>$ {{ projectInfo.market.volume | formatDecimal | formatNumber }}</span>
               </p>
             </li>
             <li class="d-flex f-align-center intro-market-item">
@@ -103,7 +107,7 @@
               </span>
               <p class="v-flex d-flex f-justify-between market-item-right">
                 <span>Total supply</span>
-                <span>1B</span>
+                <span>{{ projectInfo.market.totalSupply | formatNumber }}</span>
               </p>
             </li>
             <li class="d-flex f-align-center intro-market-item">
@@ -114,7 +118,7 @@
               </span>
               <p class="v-flex d-flex f-justify-between market-item-right">
                 <span>Circulating supply</span>
-                <span>500M</span>
+                <span>{{ projectInfo.market.circulatingSupply | formatNumber }}</span>
               </p>
             </li>
           </ul>
@@ -125,24 +129,27 @@
         </div>
       </div>
     </section>
-    <section class="ld-project-section project-section-resource">
+    <section v-if="projectInfo.socialeLinks && projectInfo.socialeLinks.length" class="ld-project-section project-section-resource">
       <h3>Resource</h3>
       <div class="project-resource-cnt">
         <ul class="resource-cnt-ul">
-          <li class="d-flex f-align-center resource-cnt-item">
+          <li
+            v-for="sociale of projectInfo.socialeLinks"
+            :key="sociale._id"
+            class="d-flex f-align-center resource-cnt-item">
             <span class="inline-block line-height-0 resource-item-icon">
               <svg>
-                <use xlink:href="#coin-less"/>
+                <use :xlink:href="`#icon-${sociale.name.toLocaleLowerCase()}`"/>
               </svg>
             </span>
-            <p class="v-flex d-flex f-justify-between resource-item-right">
-              <span>Official website</span>
+            <a :href="sociale.link" target="_blank" class="v-flex d-flex f-justify-between resource-item-right">
+              <span class="text-cap">{{ sociale.name }}</span>
               <span class="inline-block inline-height-0 resource-item-arrow">
                 <svg>
                   <use xlink:href="#icon-arrow-line-right"/>
                 </svg>
               </span>
-            </p>
+            </a>
           </li>
         </ul>
       </div>
@@ -157,16 +164,55 @@ security, financial product or instrument referenced in the content.</p>
 
 <script>
 import PromotionClaim from '@/components/reuse/_mobile/card/promotion/claim'
+
+import { getCandyDetail } from 'api'
 export default {
   name: 'lordless-project-detail',
-  props: {
-    info: {
-      type: Object,
-      default: () => {}
+  data: () => {
+    return {
+      loading: true,
+      claimed: 0,
+      projectInfo: {
+        coinmarketcap: {},
+        market: {}
+      }
+    }
+  },
+  computed: {
+    airdropInfo () {
+      const { airdrop } = this.projectInfo
+      if (!airdrop) return null
+      return Object.assign({}, airdrop, {
+        project: this.projectInfo
+      })
     }
   },
   components: {
     PromotionClaim
+  },
+  methods: {
+    initPage () {
+      const { projectId } = this.$route.params
+      projectId && this.initProject(projectId)
+    },
+    async initProject (projectId) {
+      this.loading = true
+      try {
+        const res = await getCandyDetail(projectId)
+        if (res.code === 1000 && res.data) {
+          this.projectInfo = res.data
+        }
+      } catch (err) {
+        this.loading = false
+      }
+      this.loading = false
+    }
+  },
+  activated () {
+    this.initPage()
+  },
+  mounted () {
+    this.initPage()
   }
 }
 </script>

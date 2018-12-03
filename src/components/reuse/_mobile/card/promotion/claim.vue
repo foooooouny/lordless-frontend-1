@@ -1,14 +1,20 @@
 <template>
-  <div class="promotion-claim-box">
+  <div v-if="info._id" class="promotion-claim-box">
     <div class="promotion-claim-left">
       <p class="d-flex f-align-center f-justify-between">
-        <span>{{ '32,163,956' }}&nbsp;dropping</span>
-        <span class="promotion-left-num">3,956&nbsp;&nbsp;left</span>
+        <span>
+          <span v-if="!progressNums.completed" class="inline-block">...</span>
+          <count-up v-else class="inline-block" :startVal="0" :endVal="progressNums.dropping" :duration="1000" :isReady="progressNums.completed"></count-up>&nbsp;dropping
+        </span>
+        <span class="promotion-left-num">
+          <span v-if="!progressNums.completed" class="inline-block">...</span>
+          <count-up v-else class="inline-block" :startVal="0" :endVal="progressNums.left" :duration="1000" :isReady="progressNums.completed"></count-up>&nbsp;&nbsp;left
+        </span>
       </p>
       <div class="promotion-progress-bar">
         <lordless-progress
-          :current="3931256"
-          :max="32162956"
+          :current="progressNums.left"
+          :max="progressNums.total"
           :underColor="progress.underColor"
           :gradient="progress.gradient"/>
       </div>
@@ -23,10 +29,16 @@
         <span class="inline-block">LESS</span>
       </p> -->
       <p class="TTFontBolder v-flex d-flex f-justify-start promotion-claim-num">
-        <span class="inline-block">+ 10</span>
-        <span class="inline-block text-upper promotion-claim-symbol">LESS</span>
+        <span class="inline-block">+ {{ info.countPerUser | weiToEth }}</span>
+        <span class="inline-block text-upper promotion-claim-symbol">{{ info.project.symbol }}</span>
       </p>
-      <lordless-btn class="TTFontBold promotion-claim-btn" theme="promotion" inverse @click="claimPromotion">Claim now</lordless-btn>
+      <lordless-btn
+        class="TTFontBold promotion-claim-btn"
+        theme="promotion"
+        inverse
+        :disabled="loading || isClaimed"
+        :loading="loading"
+        @click="claimPromotion">{{ isClaimed ? 'Claimed' : 'Claim now' }}</lordless-btn>
     </div>
     <lordless-authorize
       ref="authorize"
@@ -35,19 +47,38 @@
 </template>
 
 <script>
-import { metamaskMixins, dialogMixins } from '@/mixins'
-import { mapState } from 'vuex'
+import { saveAirdropUser, getAirdropUserInfo } from 'api'
+
+import { weiToEth } from 'utils/tool'
+import { metamaskMixins, dialogMixins, publicMixins } from '@/mixins'
+
+import { actionTypes } from '@/store/types'
+import { mapState, mapActions } from 'vuex'
 export default {
   name: 'promotion-claim-card',
-  mixins: [metamaskMixins, dialogMixins],
+  mixins: [metamaskMixins, dialogMixins, publicMixins],
   props: {
     info: {
       type: Object,
-      default: () => {}
+      default: () => {
+        return {}
+      }
+    },
+    claimed: {
+      type: Number,
+      default: 0
     }
   },
   data: () => {
     return {
+      loading: true,
+      isClaimed: false,
+      progressNums: {
+        completed: false,
+        total: 0,
+        left: 0,
+        dropping: 0
+      },
       progress: {
         underColor: '#ddd',
         gradient: {
@@ -60,25 +91,93 @@ export default {
   },
   computed: {
     ...mapState('contract', [
+      'airdropTokens',
       'Airdrop'
     ]),
     ...mapState('web3', [
       'web3Opt'
-    ])
+    ]),
+    claimInit () {
+      return !this.web3Opt.loading && this.web3Opt.isConnected && !!this.Airdrop && !!this.info._id
+    },
+    claimedNum () {
+      return this.progressNums.dropping
+    }
+  },
+  watch: {
+    claimInit (val) {
+      if (val) this.initTokenContract()
+    },
+    account (val) {
+      if (val && this.web3Init) this.initTokenContract()
+    },
+    claimedNum (val) {
+      this.$emit('update:claimed', val)
+    }
   },
   methods: {
+    ...mapActions('contract', [
+      actionTypes.CONTRACT_SET_AIRDROP_TOKENS
+    ]),
+
+    initTokenContract ({ project } = this.info) {
+      if (!project) return
+      const address = typeof project === 'object' ? project.address : project
+      this[actionTypes.CONTRACT_SET_AIRDROP_TOKENS](address)
+      this.$nextTick(() => {
+        this.initProgressNumber(address)
+        this.checkClaimStatus()
+      })
+    },
+
+    /**
+     * check claim status
+     */
+    async checkClaimStatus (account = this.account, airdropId = this.info.airdropId, Airdrop = this.Airdrop) {
+      if (!Airdrop) return
+      this.loading = true
+      try {
+        let isConnected = false
+        isConnected = await Airdrop.methods('isCollected', [ account, airdropId ])
+        if (!isConnected) {
+          isConnected = !!(await getAirdropUserInfo({ airdropId: this.info._id }))
+        }
+        this.isClaimed = isConnected
+      } catch (err) {
+        this.loading = false
+        this.isClaimed = false
+      }
+      this.loading = false
+    },
+
+    async initProgressNumber (tokenAddress, TokenContract = this.airdropTokens[tokenAddress], Airdrop = this.Airdrop) {
+      if (!TokenContract) {
+        this.progressNums = { total: 0, left: 0, dropping: 0 }
+        return
+      }
+      const _left = await TokenContract.methods('balanceOf', [ Airdrop.address ])
+      console.log('_left', _left.toNumber())
+      const _dropping = await Airdrop.methods('tokenTotalClaim', [ tokenAddress ])
+      console.log('_dropping', _dropping.toNumber())
+
+      const left = parseFloat(weiToEth(_left.toNumber()))
+      const dropping = parseFloat(weiToEth(_dropping.toNumber()))
+      const total = parseFloat(left + dropping)
+      this.progressNums = { total, left, dropping, completed: true }
+    },
+
     async claimPromotion (info = this.info, Airdrop = this.Airdrop, web3Opt = this.web3Opt) {
-      console.log('claimPromotion')
-      let pId = ''
+      const airdropId = info.airdropId
+      if (!airdropId) return
       try {
         // 检查市场权限
         const authorize = this.$refs.authorize.checkoutAuthorize({ guide: true })
 
         if (!authorize) return
 
-        pId = (await Airdrop.methods('getAirdropIds') || [])[0]
+        // pId = (await Airdrop.methods('getAirdropIds') || [])[0]
 
-        if (!pId) return
+        // if (!pId) return
 
         this.metamaskChoose = true
 
@@ -87,7 +186,7 @@ export default {
         // 传输的合约参数
         const claimParams = {
           name: 'claim',
-          values: [ pId ]
+          values: [ airdropId ]
         }
 
         // 估算 gas
@@ -99,7 +198,7 @@ export default {
         const params = {
           gas,
           gasPrice,
-          data: Airdrop.claim.getData(pId),
+          data: Airdrop.claim.getData(airdropId),
           // memo: 'buy a tavern by lordless',
           // feeCustomizable: true,
           to: Airdrop.address,
@@ -126,13 +225,15 @@ export default {
           console.log('----- claimHandle tx', tx)
           // this.buyPending = true
           this.metamaskChoose = false
+          this.isClaimed = true
 
-          this.checkTxEvent({ tx, action: claimParams.name, pId: info._id }, () => {
-            // this.$router.push('/owner/activity')
-          })
+          this.$set(this.progressNums, 'left', this.progressNums.left - 100)
+          this.$set(this.progressNums, 'dropping', this.progressNums.dropping + 100)
+
+          saveAirdropUser({ tx, airdropId: info._id })
         })
           .catch((err) => {
-            console.log('err', err)
+            console.log('err', err.message)
             this.metamaskChoose = false
           })
       } catch (err) {
@@ -144,6 +245,12 @@ export default {
         })
       }
     }
+  },
+  activated () {
+    this.initTokenContract()
+  },
+  mounted () {
+    this.initTokenContract()
   }
 }
 </script>
@@ -172,7 +279,7 @@ export default {
     color: #F5515F;
   }
   .promotion-claim-symbol {
-    margin-left: 3px;
+    margin-left: 5px;
     font-size: 16px;
   }
   // .promotion-candy-coin {

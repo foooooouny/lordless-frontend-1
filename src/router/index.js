@@ -546,6 +546,7 @@ router.beforeEach((to, from, next) => {
         break
       default: break
     }
+
     store.commit(`layout/${mutationTypes.LAYOUT_SET_POP_TRANSITION}`, popTransitionName)
 
     // 存储页面离开时的 scrollTop，方便在返回的时候使用

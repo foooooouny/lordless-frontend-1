@@ -7,7 +7,7 @@
       @history="$router.push('/owner/info')"/>
 
     <transition :name="popTransition">
-      <keep-alive>
+      <keep-alive :max="20">
         <router-view v-if="$route.meta.keepAlive && pageShow" class="lordless-pop-page"/>
       </keep-alive>
     </transition>

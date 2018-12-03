@@ -1,21 +1,21 @@
 <template>
   <div class="mobile-taverns-page">
-    <mobile-nav-bar text="Taverns" fixed scroll :scrollMark="100"/>
+    <mobile-nav-bar text="Taverns" fixed scroll scrollDefaultTheme="scroll-hidden" :scrollMark="100"/>
     <mobile-taverns-page
       ref="market"
       @path="pathChange"
       @openDetail="openDetail"/>
-    <tavern-dialog
+    <!-- <tavern-dialog
       v-model="detailModel"
       :ldbId="detailInfo._id"
-      @close="dialogClose"/>
+      @close="dialogClose"/> -->
   </div>
 </template>
 
 <script>
 import MobileTavernsPage from '@/components/content/_mobile/taverns'
 
-import TavernDialog from '@/components/reuse/dialog/ldb/detail'
+// import TavernDialog from '@/components/reuse/dialog/ldb/detail'
 
 import { historyState } from 'utils/tool'
 
@@ -28,16 +28,16 @@ export default {
       marketPath: null,
 
       // ldb dialog 显示控制
-      detailModel: false,
+      // detailModel: false,
 
       // ldb current detail Info
       detailInfo: {}
     }
   },
   components: {
-    MobileTavernsPage,
+    MobileTavernsPage
 
-    TavernDialog
+    // TavernDialog
   },
   computed: {
     ...mapState('status', {
@@ -47,36 +47,37 @@ export default {
       return this.$root.$children[0].isMobile
     }
   },
-  watch: {
-    popstateModel (val) {
-      console.log('popstate', val, location.pathname)
-      if (val && location.pathname.includes('/taverns')) {
-        this.detailModel = false
-      }
-    }
-  },
+  // watch: {
+  //   popstateModel (val) {
+  //     console.log('popstate', val, location.pathname)
+  //     if (val && location.pathname.includes('/taverns')) {
+  //       this.detailModel = false
+  //     }
+  //   }
+  // },
   methods: {
     /**
      * 打开详情信息页
      */
     openDetail (info) {
-      this.detailModel = true
-      this.$nextTick(() => {
-        this.detailInfo = info
-        historyState(`/tavern/${info.id}`)
-      })
+      this.$router.push(`/tavern/${info.id}`)
+      // this.detailModel = true
+      // this.$nextTick(() => {
+      //   this.detailInfo = info
+      //   historyState(`/tavern/${info.id}`)
+      // })
     },
 
     /**
      * 对话框关闭触发函数
      */
-    dialogClose (info) {
-      // 如果对话框关闭，改变浏览器地址为详情页面地址
-      if (!this.popstateModel) historyState(this.marketPath || this.$route.path)
-      // else this.$root.$children[0].popstate = false
-      console.log('dialogClose')
-      this.$refs.market.changeLdbs(info)
-    },
+    // dialogClose (info) {
+    //   // 如果对话框关闭，改变浏览器地址为详情页面地址
+    //   if (!this.popstateModel) historyState(this.marketPath || this.$route.path)
+    //   // else this.$root.$children[0].popstate = false
+    //   console.log('dialogClose')
+    //   this.$refs.market.changeLdbs(info)
+    // },
 
     pathChange (path) {
       this.marketPath = path

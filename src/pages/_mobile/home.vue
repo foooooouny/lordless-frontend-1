@@ -3,10 +3,16 @@
     <div class="mobile-home-promotions">
       <h2 class="mobile-home-title">Promotions</h2>
       <ul class="mobile-home-ul home-promotions-ul">
-        <li class="home-info-item home-promotions-item" @click.stop="$router.push('/project/1')">
+        <li
+          v-for="(item, index) of airdrops"
+          :key="index"
+          class="home-info-item home-promotions-item"
+          @click.stop="$router.push(`/project/${item.project._id}`)">
           <figure>
             <figcaption></figcaption>
-            <promotion-claim class="promotion-item-info"/>
+            <promotion-claim
+              class="promotion-item-info"
+              :info="item"/>
           </figure>
         </li>
       </ul>
@@ -16,7 +22,8 @@
       <ul class="mobile-home-ul home-candies-ul">
         <li
           v-for="(candy, index) of Object.values(candyClaimed)" :key="index"
-          class="home-info-item home-candies-item">
+          class="home-info-item home-candies-item"
+          @click.stop="$router.push(`/project/${candy._id}`)">
           <div class="d-flex f-align-center candies-symbol-box">
             <p class="line-height-0 home-candy-icon candies-symbol-coin">
               <svg>
@@ -38,11 +45,15 @@
 <script>
 import PromotionClaim from '@/components/reuse/_mobile/card/promotion/claim'
 
+import { getAirdrops } from 'api'
+
 import { mapState } from 'vuex'
 export default {
   name: 'mobile-home-page',
   data: () => {
     return {
+      loading: true,
+      airdrops: [],
       promotions: []
     }
   },
@@ -53,6 +64,23 @@ export default {
   },
   components: {
     PromotionClaim
+  },
+  methods: {
+    async getAirdrops () {
+      this.loading = true
+      try {
+        const res = await getAirdrops()
+        if (res.code === 1000 && res.data) {
+          this.airdrops = res.data
+        }
+      } catch (err) {
+        this.loading = false
+      }
+      this.loading = false
+    }
+  },
+  mounted () {
+    this.getAirdrops()
   }
 }
 </script>

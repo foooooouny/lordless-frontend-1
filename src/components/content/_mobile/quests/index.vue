@@ -15,8 +15,8 @@
         name="bounty">
       </el-tab-pane>
       <el-tab-pane
-        label="Reward"
-        name="reward">
+        label="Promotion"
+        name="promotion">
       </el-tab-pane>
     </el-tabs>
     <div id="mobile-quests-content-box" class="mobile-quests-content-box">
@@ -130,11 +130,11 @@
             </div>
           </transition>
         </div>
-        <div v-else-if="currentTab === 'reward'" class="mobile-quests-reward">
+        <div v-else-if="currentTab === 'promotion'" class="mobile-quests-promotion">
           <transition name="ld-hide-fade" mode="out-in" @after-enter="afterEnter">
-            <mobile-reward-skeletion class="quest-cnt-box" v-if="loading && !infos.reward.total"/>
+            <mobile-promotion-skeletion class="quest-cnt-box" v-if="loading && !infos.promotion.total"/>
             <div
-              v-else-if="!loading && !infos.reward.total"
+              v-else-if="!loading && !infos.promotion.total"
               class="d-flex f-auto-center mobile-quests-empty mobile-bounty-empty">
               <div class="quests-empty-container">
                 <p class="quests-empty-icon">
@@ -148,33 +148,21 @@
                 </div>
               </div>
             </div>
-            <div v-else ref="rewardQuestCnt" class="quest-cnt-box quest-item-content">
+            <div v-else ref="promotionQuestCnt" class="quest-cnt-box quest-item-content">
               <ul>
                 <li
                   class="quest-item"
-                  v-for="(reward, index) of infos.reward.list" :key="index">
-                  <mobile-quest-reward
-                    :info="reward"/>
+                  v-for="(promotion, index) of infos.promotion.list" :key="index">
+                  <mobile-quest-promotion
+                    :info="promotion"/>
                 </li>
               </ul>
               <div class="text-center quest-item-loadmore">
-                <p v-if="loading && !infos.reward.noMore">
+                <p v-if="loading && !infos.promotion.noMore">
                   <i class="el-icon-loading"></i>
                 </p>
-                <p v-else-if="infos.reward.noMore">AH! no more Reward~</p>
+                <p v-else-if="infos.promotion.noMore">AH! no more Promotion~</p>
               </div>
-              <!-- <div class="quest-pagination-box">
-                <lordless-pagination
-                  :scrollE="rewardPageScrollE"
-                  :scrollOffset="150"
-                  class="quest-pagination-pages"
-                  :total="infos.reward.total"
-                  :currentPage="infos.reward.pn"
-                  :size="infos.reward.ps"
-                  theme="blue"
-                  background
-                  @currentChange="changePage($event, 'reward')"/>
-              </div> -->
             </div>
           </transition>
         </div>
@@ -185,13 +173,13 @@
 
 <script>
 import MobileQuestBounty from '@/components/reuse/_mobile/card/quests/bounty'
-import MobileQuestReward from '@/components/reuse/_mobile/card/quests/reward'
+import MobileQuestPromotion from '@/components/reuse/_mobile/card/quests/promotion'
 
 import MobileSortBar from '@/components/reuse/_mobile/sortBar'
 
 import MobileBottomsUpSkeletion from '@/components/skeletion/_mobile/quests/bottomsUp'
 import MobileBountySkeletion from '@/components/skeletion/_mobile/quests/bounty'
-import MobileRewardSkeletion from '@/components/skeletion/_mobile/quests/reward'
+import MobilePromotionSkeletion from '@/components/skeletion/_mobile/quests/promotion'
 
 import { getUserTasks } from 'api'
 import { historyState, scrollTo } from 'utils/tool'
@@ -213,7 +201,7 @@ export default {
       tabFilters: {
         bottoms: 'candy',
         bounty: 'tasks',
-        reward: 'lord'
+        promotion: 'promotion'
       },
 
       // 当前 tab 区域,默认为地址栏参数
@@ -239,7 +227,7 @@ export default {
           total: 0,
           more: true
         },
-        reward: {
+        promotion: {
           pn: 1,
           ps: 10,
           list: [],
@@ -273,9 +261,6 @@ export default {
     },
     bountyPageScrollE () {
       return this.$refs.bountyQuestCnt
-    },
-    rewardPageScrollE () {
-      return this.$refs.rewardQuestCnt
     }
   },
   watch: {
@@ -290,13 +275,13 @@ export default {
     }
   },
   components: {
-    MobileQuestReward,
+    MobileQuestPromotion,
     MobileQuestBounty,
     MobileSortBar,
 
     MobileBottomsUpSkeletion,
     MobileBountySkeletion,
-    MobileRewardSkeletion
+    MobilePromotionSkeletion
   },
   methods: {
     afterEnter () {

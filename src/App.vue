@@ -7,7 +7,7 @@
     <Header v-if="!isMobile" ref="lordlessHeader" v-bind="headerOpt" :zIndex="isMobile ? 2299 : 99"/>
     <div class="ld-main" :class="[{ 'no-header': isMobile || !headerOpt.show || (headerOpt.show && headerOpt.fixed) }, { 'no-footer': !footerOpt.show }]">
       <transition :name="popTransitionName">
-        <keep-alive>
+        <keep-alive :max="20">
           <router-view v-if="$route.meta.keepAlive" class="lordless-pop-page"></router-view>
         </keep-alive>
       </transition>

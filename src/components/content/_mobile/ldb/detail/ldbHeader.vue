@@ -9,10 +9,7 @@
     <transition name="ld-hide-fade" @after-enter="afterEnter">
       <section v-if="!loading && info" id="mobile-detail-header" class="mobile-detail-header">
         <!-- <div class="alone-layer absolute-full detail-header-mask"></div> -->
-        <span @click.stop="$emit('tClose')" class="inline-block tavern-header-return">
-          <!-- <svg>
-            <use xlink:href="#icon-arrow-line-left"/>
-          </svg> -->
+        <!-- <span @click.stop="$emit('tClose')" class="inline-block tavern-header-return">
           <i class="el-icon-close"></i>
         </span>
         <div class="text-nowrap tavern-header-tip">
@@ -23,7 +20,7 @@
             :mobile="true"
             loginText="Started"
             @click="$emit('tipClick')"/>
-        </div>
+        </div> -->
         <div class="detail-header-top">
           <div v-if="!owner" class="detail-mobile-candies">
             <div id="mobile-candies-box" class="alone-layer mobile-candies-container" :class="{ 'show': rendered }">
@@ -641,7 +638,7 @@ export default {
 
   .header-container {
     position: relative;
-    padding: 0 10px;
+    padding: 0 18px;
     // min-width: 1000px;
     // max-width: 1280px;
     z-index: 2;
