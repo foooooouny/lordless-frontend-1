@@ -567,6 +567,11 @@ router.afterEach(() => {
   store.commit(`layout/${mutationTypes.LAYOUT_SET_POP_DIRECTION}`, 'forward')
 })
 
+router.afterEach(() => {
+  isPush = false
+  store.commit(`layout/${mutationTypes.LAYOUT_SET_POP_DIRECTION}`, 'forward')
+})
+
 store.router = router
 sync(store, router)
 export default router
