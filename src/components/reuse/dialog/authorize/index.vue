@@ -246,10 +246,12 @@ export default {
         if (this.isMobile && !loading && !isConnected) {
           this.authorizeDialog = false
 
-          if (this.rendered) {
-            this.$root.$children[0].mobileWalletModel = true
-            this.rendered = false
-          }
+          this.$nextTick(() => {
+            if (this.rendered) {
+              this.$root.$children[0].mobileWalletModel = true
+              this.rendered = false
+            }
+          })
         }
       }
     }
