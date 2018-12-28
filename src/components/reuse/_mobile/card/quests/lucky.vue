@@ -259,6 +259,10 @@ export default {
       &::after {
         content: 'FAILED';
       }
+      .bets {
+        color: #555;
+        text-decoration: line-through;
+      }
     }
   }
   .lucky-section-item {
