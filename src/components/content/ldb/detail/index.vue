@@ -106,7 +106,6 @@
             class="detail-approved-tasks"
             :ldbId="ldbInfo._id"
             :loading="ldbTaskLoading"/>
-
         </div>
       </div>
     </section>
