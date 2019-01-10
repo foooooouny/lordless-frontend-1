@@ -144,6 +144,9 @@ export default {
       })
     }
   },
+  deactivated () {
+    this.isCopyCode = false
+  },
   mounted () {
     this.$nextTick(() => {
       this.initBindCode()
