@@ -29,7 +29,7 @@
         </div> -->
         <div class="building-main-cnt">
           <p class="building-tokenId">#{{ info.chain.tokenId }}</p>
-          <h2 class="building-name">{{ info.name.zh }}</h2>
+          <h2 class="text-multi-ellipsis building-name">{{ info.name.zh }}</h2>
           <p class="d-flex f-auto-center building-coords">
             <span class="inline-block line-height-0 building-coords-icon">
               <svg>
@@ -230,10 +230,10 @@ export default {
     }
   }
   .building-name {
-    height: 46px;
+    height: 50px;
     font-size: 18px;
     color: #0B2A48;
-    overflow: hidden;
+    -webkit-line-clamp: 2;
   }
   .building-tokenId {
     margin-top: 0px;
