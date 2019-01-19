@@ -15,7 +15,7 @@
               <use :xlink:href="`#icon-${presale ? 'presale' : 'sale'}`"/>
             </svg>
           </p> -->
-          <p class="m-building-name">{{ info.name.zh }}</p>
+          <p class="text-multi-ellipsis m-building-name">{{ info.name.zh }}</p>
           <div class="m-building-sale-box">
             <div v-if="info.lord"
                 class="d-flex f-auto-center building-owner-info">
@@ -205,7 +205,7 @@ export default {
   .m-building-name {
     font-weight: 500;
     height: 32px;
-    overflow: hidden;
+    -webkit-line-clamp: 2;
   }
   .building-price-icon {
     margin-right: 2px;
