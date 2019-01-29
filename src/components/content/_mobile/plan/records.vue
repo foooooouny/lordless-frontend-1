@@ -75,7 +75,7 @@ export default {
         if (item.month) item.month = null
         if (!lastYearMonths.length) continue
         for (let i = 0; i < lastYearMonths.length; i++) {
-          if (item.records_at < lastYearMonths[i].nextTimestamp) {
+          if (item.recordsAt * 1000 < lastYearMonths[i].nextTimestamp) {
             item.month = lastYearMonths[i]
             lastYearMonths.splice(i, 1)
             break

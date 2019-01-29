@@ -255,7 +255,7 @@ export default {
 
 <style lang="scss" scoped>
   .mobile-deposits-box {
-
+  }
   /**
    *  mobile-deposits-none  -- begin
    */
