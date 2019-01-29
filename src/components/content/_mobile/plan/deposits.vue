@@ -256,6 +256,13 @@ export default {
 <style lang="scss" scoped>
   .mobile-deposits-box {
 
+  /**
+   *  mobile-deposits-none  -- begin
+   */
+  .mobile-deposits-none {
+    padding: 74px 30px 30px;
+    box-sizing: border-box;
+    @include viewport-unit(min-height, 100vh, 50px);
   }
 
   /**
