@@ -52,7 +52,7 @@
                   <use xlink:href="#icon-bounty-diamond"/>
                 </svg>
               </span>
-              <span>BOUNTIES{{ playInit }}</span>
+              <span>BOUNTIES</span>
             </h3>
             <ul class="chest-detail-candies-box">
               <li v-for="(item, index) of chestDetail.info" :key="`bounties_${index}`"
