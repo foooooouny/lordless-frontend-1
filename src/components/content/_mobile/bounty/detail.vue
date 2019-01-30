@@ -396,7 +396,7 @@ export default {
       }))
 
       this.isChecking = false
-      this.isDisabled = !isDisabled
+      this.isDisabled = isDisabled
       return isDisabled
     },
 
