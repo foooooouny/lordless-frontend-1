@@ -52,7 +52,7 @@ export default {
         {
           icon: '#icon-tab-coin',
           activeIcon: '#icon-tab-coin',
-          name: 'Candies',
+          name: 'Tokens',
           route: '/owner/candy',
           match: /^\/owner\/candy/,
           active: false
