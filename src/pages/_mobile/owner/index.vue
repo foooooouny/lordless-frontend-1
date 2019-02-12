@@ -119,7 +119,7 @@ export default {
           historyPath: '/owner/hops'
         },
         {
-          text: 'Withdraw',
+          text: 'Make a chest',
           match: /^\/owner\/withdraw/,
           show: true,
           history: true

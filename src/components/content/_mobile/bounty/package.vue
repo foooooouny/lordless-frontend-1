@@ -173,6 +173,9 @@ export default {
       this.packageLoading = false
     }
   },
+  deactivated () {
+    this.loading = true
+  },
   activated () {
     if (!this.rendered) return
     this.initPackageBounty()
