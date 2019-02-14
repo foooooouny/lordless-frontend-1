@@ -227,7 +227,7 @@ export default {
     position: absolute;
     left: 20px;
     top: 50%;
-    width: 18px;
+    width: 36px;
     height: 36px;
     fill: #fff;
     background-color: #777;
