@@ -10,6 +10,7 @@ const activatedMixins = require('./activated')
 const clipboardMixins = require('./clipboard')
 
 const promotionsMixins = require('./utils/promotions')
+const checkTokensBalanceMixins = require('./utils/checkTokensBalance')
 
 // console.log('contractMixins', contractMixins)
 // // export const loginMixins = login
@@ -23,5 +24,6 @@ module.exports = {
   publicMixins: publicMixins.default,
   activatedMixins: activatedMixins.default,
   promotionsMixins: promotionsMixins.default,
+  checkTokensBalanceMixins: checkTokensBalanceMixins.default,
   clipboardMixins: clipboardMixins.default
 }

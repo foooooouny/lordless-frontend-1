@@ -7,6 +7,7 @@ const files = [
   '/reuse/dialog/authorize',
   '/reuse/dialog/luckyblock/rules',
   '/reuse/dialog/luckyblock/conditions',
+  '/reuse/dialog/plan/glossary',
 
   '/content/layout/header/logo',
 
@@ -18,6 +19,7 @@ const files = [
   '/stories/pagination',
   '/stories/progress',
   '/stories/dialog/fade',
+  '/stories/dialog/popup',
   '/stories/candyIcon'
 ]
 

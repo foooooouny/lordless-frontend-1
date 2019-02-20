@@ -34,7 +34,7 @@
                   :style="`animation-delay: ${index * .35}s;`"
                   :data-num="`≈ ${(candy.ldbTaskType.priceInUSD * candy.ldbTaskType.candyType.USD2TokenCount).toFixed(4)}`"
                   :data-tip="`+ ${(candy.ldbTaskType.priceInUSD * candy.ldbTaskType.candyType.USD2TokenCount).toFixed(4)} ${candy.ldbTaskType.candyType.symbol.toLocaleUpperCase()}`"
-                  @click="receiveCandy(candy)">
+                  @click="receiveCandy(candy, index)">
                   <svg>
                     <use xlink:href="#ldb-candy-circle"/>
                   </svg>
@@ -368,12 +368,14 @@ export default {
     /**
      * 领取糖果
      */
-    async receiveCandy (task) {
+    async receiveCandy (task, index) {
       // this.$root.$children[0].mobileWalletModel = true
-
+      console.log('---- task', task, task.choose)
       // 移动端，暂时阻断
       // if (task) return
       if (task.status !== 'processing') return
+
+      this.candyTasks[index].choose = true
 
       this.receiveBoxShow = true
 
@@ -439,6 +441,7 @@ export default {
           iserror = true
           removeClass('hidden', cCandy)
           removeClass('animate', candy)
+          this.candyTasks[index].choose = false
           return
         }
 
@@ -453,8 +456,10 @@ export default {
     getCandyTasks (tasks = this.tasks) {
       if (this.owner) return
 
+      const _apLeft = this.info.apLeft
+      const _userLeftAp = this.userInfo.ap
       // 根据用户及建筑剩余ap判断显示糖果
-      const leftAp = this.userInfo._id ? (this.info.apLeft > this.userInfo.ap ? this.userInfo.ap : this.info.apLeft) : 6
+      const leftAp = this.userInfo._id ? (_apLeft > _userLeftAp ? _userLeftAp : _apLeft) : 6
       console.log('leftAp', leftAp)
       const clen = leftAp >= 6 ? 6 : leftAp
 
@@ -627,7 +632,18 @@ export default {
       _setTimeout({ duration: this.countUp.nAP.duration }, () => {
         this.$set(this.countUp.nAP, 'start', end)
       })
+    },
+
+    clearCandies () {
+      this.rendered = false
+      this.candyCoords = {}
+      this.candyTasks = []
+      this.hideTasks = 1
+      this.$emit('update:tasks', [])
     }
+  },
+  deactivated () {
+    this.clearCandies()
   }
 }
 </script>

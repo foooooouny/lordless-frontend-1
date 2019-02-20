@@ -1,17 +1,18 @@
 <template>
   <div class="mobile-main-page">
+    <mobile-plan-bar/>
     <mobile-nav-bar
       ref="mobile-nav-bar"
       v-show="(scrollOpt.show && (!connectModel || !web3Model)) || connectModel || web3Model"
       v-bind="scrollOpt"
-      @history="$router.push('/owner/info')"/>
+      @history="ownerNavbarHistory(scrollOpt.historyPath)"/>
 
     <transition :name="popTransition">
       <keep-alive :max="20">
         <router-view v-if="$route.meta.keepAlive && pageShow" class="lordless-pop-page"/>
       </keep-alive>
     </transition>
-    <router-view v-if="!$route.meta.keepAlive && pageShow"/>
+    <router-view v-if="!$route.meta.keepAlive && pageShow && ($route.meta.ownerChild || !isMobile)"/>
     <div
       v-if="web3Model || connectModel || web3Loading"
       class="d-flex mobile-plugins-box">
@@ -37,6 +38,7 @@
 <script>
 import MobileConnect from '@/components/reuse/_mobile/connect'
 import MobileWallets from '@/components/reuse/_mobile/wallets/trust'
+import MobilePlanBar from '@/components/reuse/_mobile/plan/planBar'
 // import Authorize from '@/components/reuse/dialog/authorize'
 
 import { publicMixins } from '@/mixins'
@@ -52,48 +54,85 @@ export default {
         text: 'Candies',
         scroll: false,
         withdraw: false,
-        scrollMark: 0
+        scrollMark: 0,
+        historyPath: null
       },
       navbarTexts: [
         {
           text: 'Candies',
-          match: /\/owner\/candy/,
+          match: /^\/owner\/candy(\/){0,}$/,
           show: false,
           withdraw: true
         },
         {
           text: 'Quests',
-          match: /\/owner\/quest/,
+          match: /^\/owner\/quest(\/){0,}$/,
           show: false
         },
         {
           text: 'Me',
-          match: /\/owner\/info/,
+          match: /^\/owner\/info(\/){0,}$/,
           show: false
         },
         {
           text: 'Activities',
-          match: /\/owner\/activities/,
+          match: /^\/owner\/activities(\/){0,}$/,
           show: true,
           history: true
         },
         {
           text: 'Taverns',
-          match: /\/owner\/taverns/,
+          match: /^\/owner\/taverns(\/){0,}$/,
           show: true,
           history: true
         },
         {
           text: 'Authorizations',
-          match: /\/owner\/authorization/,
+          match: /^\/owner\/authorization(\/){0,}$/,
           show: true,
           history: true
         },
         {
           text: 'Bind Telegram',
-          match: /\/owner\/bind\/telegram/,
+          match: /^\/owner\/bind\/telegram(\/){0,}$/,
           show: true,
           history: true
+        },
+        {
+          text: 'HOPS',
+          match: /^\/owner\/hops(\/){0,}$/,
+          show: true,
+          history: true
+        },
+        {
+          text: 'My deposits',
+          match: /^\/owner\/deposits/,
+          show: true,
+          history: true,
+          historyPath: '/owner/hops'
+        },
+        {
+          text: 'HOPS Records',
+          match: /^\/owner\/plan\/records/,
+          show: true,
+          history: true,
+          historyPath: '/owner/hops'
+        },
+        {
+          text: 'Make a chest',
+          match: /^\/owner\/bountyChest/,
+          show: true,
+          history: true,
+          historyPath: '/owner/bounty/chests'
+        },
+        {
+          text: 'My Bounty Chests',
+          match: /^\/owner\/bounty\/chests/,
+          show: true,
+          history: true,
+          rightIcon: '#icon-bounty-chests',
+          rightPath: '/owner/bountyChest',
+          historyPath: '/owner/info'
         }
       ]
     }
@@ -132,7 +171,8 @@ export default {
   components: {
     // Authorize,
     MobileConnect,
-    MobileWallets
+    MobileWallets,
+    MobilePlanBar
   },
   methods: {
 
@@ -158,6 +198,11 @@ export default {
 
     async checkUser () {
       this.$refs.mobileOwnerAuthorize.checkoutAuthorize()
+    },
+
+    ownerNavbarHistory (path = '/owner/info') {
+      sessionStorage.setItem('lordless_direction', '_reverse')
+      return this.$router.push(path)
     }
   },
   activated () {

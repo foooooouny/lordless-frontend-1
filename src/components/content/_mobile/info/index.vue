@@ -38,7 +38,7 @@
             </span>
             <div class="v-flex d-flex f-align-center cnt-item-right">
               <p class="v-flex cnt-item-title">Total earnings</p>
-              <span>$ {{ overviews.estimated | formatDecimal }}</span>
+              <span>$ {{ overviews.totalEarnings.value | formatDecimal }}</span>
             </div>
           </li>
           <li class="d-flex f-align-center info-cnt-item">
@@ -49,7 +49,7 @@
             </span>
             <div class="v-flex d-flex f-align-center cnt-item-right">
               <p class="v-flex cnt-item-title">Holdings</p>
-              <span>$ {{ overviews.estimated | formatDecimal }}</span>
+              <span>$ {{ overviews.holdings.value | formatDecimal }}</span>
             </div>
           </li>
           <li v-if="userHome" class="d-flex f-align-center info-cnt-item" @click.stop="$emit('home', userHome.ldb)">
@@ -81,6 +81,8 @@
             </span>
             <div class="v-flex d-flex f-align-center cnt-item-right">
               <p class="v-flex cnt-item-title">{{ item.title }}</p>
+              <p v-if="item.tips" class="bind-item-tips">{{ item.tips }}</p>
+              <p v-if="item.holdings" class="bind-item-tips">$ {{ overviews.holdings.value | formatDecimal }}</p>
               <p v-if="item.isBindTelegram" class="d-flex f-align-center">
                 <span v-if="userInfo.telegram && userInfo.telegram.id">{{ userInfo.telegram.username || userInfo.telegram.first_name }}</span>
                 <span v-else class="inline-block bind-telegram-tip"></span>
@@ -150,7 +152,10 @@ export default {
   data: () => {
     return {
       loading: true,
-      overviews: {},
+      overviews: {
+        holdings: {},
+        totalEarnings: {}
+      },
 
       lordlessOuterInfos: [
         {
@@ -183,22 +188,38 @@ export default {
     infoChildrens () {
       return [].concat([
         {
-          icon: '#icon-link',
-          title: 'Bind Telegram',
-          path: '/owner/bind/telegram',
-          isBindTelegram: true
-        }
-      ], [
+          icon: '#coin-hops',
+          title: 'HOPS',
+          path: '/owner/hops',
+          tips: 'Deposit LESS'
+        },
+        // {
+        //   icon: '#icon-outcome',
+        //   title: 'Make a chest',
+        //   path: '/owner/bountyChest',
+        //   holdings: true
+        // },
         {
-          icon: '#icon-authorization_selected',
-          title: 'Authorizations',
-          path: '/owner/authorization',
-          large: true
+          icon: '#icon-bounty-chests',
+          title: 'Bounty Chests',
+          path: '/owner/bounty/chests'
         },
         {
           icon: '#icon-beer',
           title: 'My Taverns',
           path: '/owner/taverns'
+        },
+        {
+          icon: '#icon-link',
+          title: 'Bind Telegram',
+          path: '/owner/bind/telegram',
+          isBindTelegram: true
+        },
+        {
+          icon: '#icon-authorization_selected',
+          title: 'Authorizations',
+          path: '/owner/authorization',
+          large: true
         }
       ])
     }
@@ -347,6 +368,9 @@ export default {
   }
   .cnt-item-title {
     color: #555;
+  }
+  .bind-item-tips {
+    color: #999;
   }
   .cnt-item-right {
     margin-left: 12px;

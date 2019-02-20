@@ -9,6 +9,7 @@ import {
   differenceInCalendarISOYears
 } from 'date-fns'
 import store from '@/store'
+import Decimal from 'decimal.js-light'
 
 window.requestAnimationFrame = (function () {
   return window.requestAnimationFrame ||
@@ -351,7 +352,8 @@ export const weiByDecimals = (value, decimals = 18) => {
   // 防止 1e+20 之类的数字转化失败，这里需要判断一下
   if (typeof value !== 'number') value = parseInt(value)
 
-  return parseFloat(parseFloat(value / Math.pow(10, decimals)).toFixed(4))
+  return parseFloat(new Decimal(value).div(Math.pow(10, decimals)).toFixed(4))
+  // return parseFloat(_strip(value / Math.pow(10, decimals)).toFixed(4))
 }
 /**
  * wei to eth
@@ -399,6 +401,18 @@ export const formatNumber = (number) => {
     }
   }
   return str || number
+}
+
+export const formatMoneyNumber = (value, { len = 4 } = {}) => {
+  if (!value || typeof value !== 'number') return value
+  const values = value.toString().split('.')
+  if (len === 0) return values[0]
+  if (values[1]) {
+    value = parseInt(values[0]).toLocaleString() + '.' + values[1].slice(0, len)
+  } else {
+    value = parseInt(values[0]).toLocaleString()
+  }
+  return value
 }
 
 export const formatDecimal = (value, { len = 4, percentage = false } = {}) => {
@@ -545,4 +559,33 @@ export const mobileBool = () => {
 
 export const isWechat = () => {
   return typeof WeixinJSBridge !== 'undefined' && (navigator.userAgent.toLowerCase().indexOf('micromessenger') > -1 || typeof window.navigator.wxuserAgent !== 'undefined')
+}
+
+export const getLastYearMonths = () => {
+  const d = new Date()
+  const func = (d) => {
+    d = new Date(JSON.parse(JSON.stringify(d)))
+    let curM = d.getMonth() + 1
+    curM = curM < 10 ? '0' + curM : curM
+
+    const current = {
+      date: d.getFullYear() + '-' + curM,
+      timestamp: new Date(d.getFullYear() + '-' + curM).getTime()
+    }
+
+    d.setMonth(d.getMonth() + 1)
+    let nextM = d.getMonth() + 1
+    nextM = nextM < 10 ? '0' + nextM : nextM
+    const prev = {
+      nextDate: d.getFullYear() + '-' + nextM,
+      nextTimestamp: new Date(d.getFullYear() + '-' + nextM).getTime()
+    }
+    return Object.assign({}, current, prev)
+  }
+  const result = [func(d)]
+  for (var i = 0; i < 10; i++) {
+    d.setMonth(d.getMonth() - 1)
+    result.push(func(d))
+  }
+  return result
 }
