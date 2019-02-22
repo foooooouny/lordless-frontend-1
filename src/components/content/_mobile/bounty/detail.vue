@@ -142,12 +142,11 @@
           <lordless-btn
             v-else-if="chestStatus === 'unopened' || chestStatus === 'unlocking'"
             class="full-width chest-detail-btn"
-            :theme="isCouldUnlock ? 'blue-linear' : 'red-linear'"
+            theme="blue-linear"
             :loading="isChecking || btnLoading || !tokensBalanceInit"
             :disabled="isChecking || !tokensBalanceInit || (enoughHops && (isDisabled || btnLoading || chestStatus === 'unlocking'))"
             @click="unlockBountyMethod">
-            <span v-if="isCouldUnlock">Unlock the Bounty Chest</span>
-            <span v-else>Deposit LESS to reap HOPS</span>
+            Unlock the Bounty Chest
           </lordless-btn>
         </div>
       </div>
