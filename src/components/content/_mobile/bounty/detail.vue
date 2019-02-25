@@ -142,12 +142,11 @@
           <lordless-btn
             v-else-if="chestStatus === 'unopened' || chestStatus === 'unlocking'"
             class="full-width chest-detail-btn"
-            :theme="(isChecking || enoughHops || !tokensBalanceInit) ? 'blue-linear' : 'red-linear'"
+            theme="blue-linear"
             :loading="isChecking || btnLoading || !tokensBalanceInit"
             :disabled="isChecking || !tokensBalanceInit || (enoughHops && (isDisabled || btnLoading || chestStatus === 'unlocking'))"
             @click="unlockBountyMethod">
-            <span v-if="(isChecking || enoughHops || !tokensBalanceInit)">Unlock the Bounty Chest</span>
-            <span v-else>Deposit LESS to reap HOPS</span>
+            Unlock the Bounty Chest
           </lordless-btn>
         </div>
       </div>
@@ -156,10 +155,11 @@
     <lordless-popup-dialog
       :visible.sync="bountyPopupModel"
       @open="checkPendingTx"
+      @opened="bountyPopupOpened"
       @closed="txPendingLoading = false">
       <div class="chest-detail-popup-box">
         <div class="TTFontBolder relative text-center chest-popup-header">
-          {{ enoughHops ? 'Payment': 'Deposit' }}
+          {{ enoughHops ? 'Payment': 'HOPS insufficient' }}
           <span
             @click.stop="bountyPopupModel = false"
             class="TTFontBolder inline-block line-height-1 chest-popup-close">
@@ -205,15 +205,16 @@
             </p>
             <p class="deposit-popup-desc">Choose an option to calculate the minimum amount of LESS to deposit at least. <span @click.stop="$router.push('/owner/hops')">Click here to deposit more</span>.</p>
           </div>
-          <ul class="text-nowrap deposit-popup-slider">
-            <li v-for="(item, index) of planBases" :key="index" class="inline-block deposit-slider-item">
+          <ul ref="deposit-popup-slider" class="text-nowrap deposit-popup-slider">
+            <li v-for="(item, index) of planBases" :key="index" class="inline-block deposit-slider-item" :data-active="item._id === activePlanBase._id">
               <hops-plant :info="item" :isActive="item._id === activePlanBase._id" :lessBalance="-1" small @choosePlan="choosePlan($event, index)"/>
             </li>
           </ul>
           <div class="deposit-popup-balance" :class="{ 'is-failed': !enoughDepositLess }">
             <h2>≈ {{ activePlanBase._id ? weiByDecimals(depositLessAmount).toLocaleString() : '???' }} <span>LESS</span></h2>
             <p v-if="enoughDepositLess">LESS balance in wallet sufficient.</p>
-            <p v-else>LESS insufficient. Still need <span class="TTFontBolder text-underline">{{ weiByDecimals(depositLessAmount - lessBalance).toLocaleString() }}</span>.</p>
+            <p v-else-if="!activePlanBase._id" class="deposit-choose-plan">Choose a deposit plan.</p>
+            <p v-else>LESS insufficient. Still need <span class="TTFontBolder text-underline">{{ weiByDecimals(depositLessAmount - lessBalance + 1e16).toLocaleString() }}</span>.</p>
           </div>
           <lordless-btn
             class="chest-popup-btn"
@@ -229,10 +230,16 @@
     </lordless-popup-dialog>
 
     <lordless-authorize
-      ref="authorize"
+      ref="unlockBountyAuthorize"
       blurs
       tokenAllowanceType="bounty"
-      :tokenBets="tokenBets"/>
+      :tokenBets="unlockBountyTokenBets"/>
+
+    <lordless-authorize
+      ref="depositAuthorize"
+      blurs
+      tokenAllowanceType="plant"
+      :tokenBets="depositTokenBets"/>
   </div>
 </template>
 
@@ -243,6 +250,8 @@ import HopsPlant from '@/components/reuse/_mobile/card/plan/plant'
 
 import { getBountyDetail, openBounty, getPlanBases, saveGrowHopsPlan } from 'api'
 import { weiByDecimals } from 'utils/tool'
+import { scrollToLeft } from 'utils/tool/animate'
+import Decimal from 'decimal.js-light'
 
 import { metamaskMixins, checkTokensBalanceMixins, publicMixins } from '@/mixins'
 
@@ -324,16 +333,20 @@ export default {
 
     // 选择 plant 计算需要的 less 数量
     depositLessAmount () {
-      const _activePlanBase = this.activePlanBase
-      const _lessBalance = this.lessBalance
-      let amount = (this.chestDetail.needHopsAmount - this.hopsBalance) / _activePlanBase.lessToHops
-      if (_lessBalance < _activePlanBase.minimumAmount) {
-        console.log('==========', _activePlanBase.minimumAmount - amount)
-        amount = _activePlanBase.minimumAmount
-      }
-      console.log('----- depositLessAmount', amount, 'minimum', _activePlanBase.minimumAmount, 'balance', _lessBalance)
+      const { _id, minimumAmount, lessToHops } = this.activePlanBase || {}
+      const _hopsBalance = this.hopsBalance
+      const _needHopsAmount = this.chestDetail.needHopsAmount
+      if (!_id || _hopsBalance === undefined) return 0
+      // const _lessBalance = this.lessBalance
 
-      // return _activePlanBase._id ? (this.chestDetail.needHopsAmount - this.hopsBalance) / _activePlanBase.lessToHops : 0
+      // 计算公式: (_needHopsAmount - _hopsBalance) / lessToHops
+      let amount = new Decimal(_needHopsAmount).sub(_hopsBalance).div(lessToHops).toNumber()
+      // let amount = (_needHopsAmount - _hopsBalance) / lessToHops
+      if (amount < minimumAmount) {
+        amount = minimumAmount
+      }
+      console.log('----- depositLessAmount', amount, 'minimum', minimumAmount, 'balance')
+
       return amount
     },
 
@@ -342,12 +355,16 @@ export default {
       return this.lessBalance >= this.depositLessAmount && this.lessBalance >= this.activePlanBase.minimumAmount
     },
 
+    isCouldUnlock () {
+      return this.isChecking || this.enoughHops || !this.tokensBalanceInit
+    },
+
     scrollOpt () {
       return {
         text: `#${this.chestDetail.bountyId || '?'} Chest detail`,
         match: /^\/owner\/chest\//,
         history: true,
-        historyPath: '/owner/bounty/chests'
+        historyPath: '/owner/bc?type=chests'
       }
     },
 
@@ -370,7 +387,7 @@ export default {
       return info.bountyId ? `https://opensea.io/assets/0xb9250c9581e4594b7c6914897823ad18d6b78e96/${info.bountyId}` : 'https://opensea.io/assets/lordless:bounty'
     },
 
-    tokenBets () {
+    unlockBountyTokenBets () {
       const candySymbols = this.candySymbols.list
       // let count = this.chestDetail.needHopsAmount
       if (!candySymbols || !this.chestDetail._id) return []
@@ -391,12 +408,25 @@ export default {
           contract: 'BountyNFT'
         }
       ]
+    },
+
+    depositTokenBets () {
+      const _info = this.activePlanBase
+      return [
+        {
+          candy: _info.lessCandy,
+          count: _info.minimumAmount
+        }
+      ]
     }
   },
   watch: {
     playInit (val) {
       console.log('----- playInit', val)
-      val && this.initBountyChestStatus()
+      if (val) {
+        this.initBountyChestStatus()
+        this.initBetterPlanBase()
+      }
     }
   },
   components: {
@@ -410,6 +440,49 @@ export default {
 
     afterEnter () {
       this.initChestDetailBtnBox()
+    },
+
+    bountyPopupOpened () {
+      this.scrollToActiveBase()
+    },
+
+    scrollToActiveBase () {
+      const sliderBox = this.$refs['deposit-popup-slider']
+      const items = document.querySelectorAll('.deposit-popup-slider .deposit-slider-item')
+      if (!sliderBox || !items.length) return
+      // let _scrollLeft = 0
+      for (const item of items) {
+        const _active = item.getAttribute('data-active')
+        // console.log(' scrollToActiveBase item', item, item.offsetLeft, _scrollLeft, item.getAttribute('data-active'))
+        if (_active) {
+          // _scrollLeft = item.offsetLeft
+          scrollToLeft(sliderBox, { before: 0, end: item.offsetLeft - item.offsetWidth / 2, duration: 150, ltype: 'linear' })
+          // sliderBox.scrollLeft = item.offsetLeft - item.offsetWidth / 2
+          break
+        }
+      }
+    },
+
+    // 初始化最佳种植计划
+    initBetterPlanBase () {
+      const planBases = JSON.parse(JSON.stringify(this.planBases))
+      const _hopsBalance = this.hopsBalance || 0
+      const betterBase = (planBases.map(item => {
+        const { _id, minimumAmount, lessToHops } = item || {}
+        if (!_id) return item
+
+        // 计算公式: (this.chestDetail.needHopsAmount - this.hopsBalance) / lessToHops
+        let _amount = new Decimal(this.chestDetail.needHopsAmount).sub(_hopsBalance).div(lessToHops).toNumber()
+        // let amount = (this.chestDetail.needHopsAmount - this.hopsBalance) / lessToHops
+        if (_amount < minimumAmount) {
+          _amount = minimumAmount
+        }
+        return Object.assign({}, item, {
+          _amount
+        })
+      }).sort((a, b) => a._amount - b._amount))[0]
+      this.activePlanBase = betterBase
+      console.log('------------ -betterBase', betterBase)
     },
 
     initChestStatus (info = this.chestDetail) {
@@ -470,7 +543,7 @@ export default {
           console.log('-0000-------- before status')
           this.initBountyChestStatus(res.data)
         } else if (!res.data) {
-          this.$router.push('/owner/bounty/chests')
+          this.$router.push('/owner/bc?type=chests')
         }
       } catch (err) {
         console.log('----- get chest info err', err.message)
@@ -527,7 +600,11 @@ export default {
     // unlock bounty 触发
     async unlockBountyMethod () {
       try {
-        const authorize = await this.$refs.authorize.checkoutAuthorize({ tokenAllowance: true })
+        if (!this.isCouldUnlock) {
+          this.bountyPopupModel = !this.bountyPopupModel
+          return
+        }
+        const authorize = await this.$refs.unlockBountyAuthorize.checkoutAuthorize({ tokenAllowance: true })
         console.log('unlockBountyMethod', authorize)
         if (!authorize) return
         console.log('openBounty', authorize, openBounty)
@@ -640,9 +717,20 @@ export default {
       }
     },
 
-    depositLESS () {
+    async depositLESS () {
       if (!this.enoughDepositLess || !this.activePlanBase._id) return
-      this.doDepositLESS()
+      try {
+        const authorize = await this.$refs.depositAuthorize.checkoutAuthorize({ tokenAllowance: true })
+        if (!authorize) return
+        this.doDepositLESS()
+      } catch (err) {
+        this.$notify.error({
+          title: 'Error!',
+          message: err.message || 'unknow error',
+          position: 'bottom-right',
+          duration: 3500
+        })
+      }
     },
 
     // 种植 less
@@ -663,6 +751,7 @@ export default {
         })
         return
       }
+      lessAmount = new Decimal(lessAmount).toFixed(0)
 
       this.metamaskChoose = true
       console.log('------- do deposit less', lessAmount, info.planBaseId)
@@ -1096,12 +1185,18 @@ export default {
       font-size: 16px;
       color: #777;
     }
+    .deposit-choose-plan {
+      color: #0B2A48;
+    }
     &.is-failed {
       >h2 {
         color: #999;
       }
       >p {
         color: #F5515F;
+      }
+      .deposit-choose-plan {
+        color: #0B2A48;
       }
     }
   }
