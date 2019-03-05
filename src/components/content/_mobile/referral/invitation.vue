@@ -15,7 +15,6 @@
               <h3>Two-sided rewards</h3>
             </div>
           </div>
-          <!-- <p class="ImpactFont text-nowrap invitation-impact-address">Invite you to join LORDLESS</p> -->
           <div class="invitation-address-box">
             <p class="TTFontBolder">Invitation address</p>
             <h2 class="d-flex f-align-center invitation-header-address">
@@ -468,10 +467,4 @@ export default {
       }
     }
   }
-
-  // .invitation-impact-address {
-  //   margin-top: 18px;
-  //   font-size: 30px;
-  //   color: $--main-yellow-color;
-  // }
 </style>
