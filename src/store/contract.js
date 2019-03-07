@@ -3,7 +3,11 @@
  * contract store options
  */
 import { weiByDecimals } from 'utils/tool'
-import { initContract, NFTsCrowdsale, TavernNFTs, Airdrop, Luckyblock, HOPSPlan, Bounty, BountyNFT } from '@/contract'
+import {
+  initContract, NFTsCrowdsale, TavernNFTs,
+  Airdrop, Luckyblock, HOPSPlan, GrowHopsPlus,
+  Bounty, BountyNFT, Referer
+} from '@/contract'
 import { mutationTypes, actionTypes } from './types'
 import web3Store from './web3'
 import candyStore from './candy'
@@ -24,6 +28,7 @@ export default {
     Luckyblock: null,
     Bounty: null,
     BountyNFT: null,
+    Referer: null,
 
     // 所有的 erc721 授权
     bountyNFTApproved: false,
@@ -42,6 +47,9 @@ export default {
 
     HOPSPlanTokenAllowances: {},
     HOPSPlanTokenAllowancesInit: false,
+
+    GrowHopsPlusTokenAllowances: {},
+    GrowHopsPlusTokenAllowancesInit: false,
 
     luckyblockTokenAllowances: {},
     luckyblockTokenAllowancesInit: false
@@ -81,7 +89,16 @@ export default {
     [mutationTypes.CONTRACT_SET_HOPS_PLAN_TOKEN_ALLOWANCE]: (state, { candiesTotal = 0, candy = '', allowance = 0 } = {}) => {
       state.HOPSPlanTokenAllowances[candy.toLocaleLowerCase()] = allowance.toNumber()
       if (Object.keys(state.HOPSPlanTokenAllowances).length >= candiesTotal) state.HOPSPlanTokenAllowancesInit = true
-      // window.HOPSPlanTokenAllowances = state.HOPSPlanTokenAllowances
+      window.HOPSPlanTokenAllowances = state.HOPSPlanTokenAllowances
+    },
+
+    /**
+     * set GrowHOPSPlus token allowance
+     */
+    [mutationTypes.CONTRACT_SET_GROW_HOPS_PLUS_TOKEN_ALLOWANCE]: (state, { candiesTotal = 0, candy = '', allowance = 0 } = {}) => {
+      state.GrowHopsPlusTokenAllowances[candy.toLocaleLowerCase()] = allowance.toNumber()
+      if (Object.keys(state.GrowHopsPlusTokenAllowances).length >= candiesTotal) state.GrowHopsPlusTokenAllowancesInit = true
+      window.GrowHopsPlusTokenAllowances = state.GrowHopsPlusTokenAllowances
     },
 
     /**
@@ -135,8 +152,10 @@ export default {
         commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'Airdrop', value: await Airdrop(web3js) })
         commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'Luckyblock', value: await Luckyblock(web3js) })
         commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'HOPSPlan', value: await HOPSPlan(web3js) })
+        commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'GrowHopsPlus', value: await GrowHopsPlus(web3js) })
         commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'Bounty', value: await Bounty(web3js) })
         commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'BountyNFT', value: await BountyNFT(web3js) })
+        commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'Referer', value: await Referer(web3js) })
         commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'TavernNFTs', value: await TavernNFTs(web3js) })
         commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'contractReady', value: true })
       }
@@ -165,8 +184,10 @@ export default {
       commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'Airdrop', value: await Airdrop(web3js) })
       commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'Luckyblock', value: await Luckyblock(web3js) })
       commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'HOPSPlan', value: await HOPSPlan(web3js) })
+      commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'GrowHopsPlus', value: await GrowHopsPlus(web3js) })
       commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'Bounty', value: await Bounty(web3js) })
       commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'BountyNFT', value: await BountyNFT(web3js) })
+      commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'Referer', value: await Referer(web3js) })
       commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'TavernNFTs', value: await TavernNFTs(web3js) })
       commit(mutationTypes.CONTRACT_SET_INSTANCE, { key: 'address', value: null })
     },
@@ -174,35 +195,47 @@ export default {
     /**
      * set airdrop tokens contract
      */
-    [actionTypes.CONTRACT_SET_AIRDROP_TOKENS]: async ({ state, commit, dispatch }, { candiesTotal, candy, luckyAddress = state.Luckyblock.address, HOPSPlanAddress = state.HOPSPlan.address, BountyAddress = state.Bounty.address } = {}) => {
+    [actionTypes.CONTRACT_SET_AIRDROP_TOKENS]:
+      async ({ state, commit, dispatch },
+        {
+          candiesTotal,
+          candy,
+          luckyAddress = state.Luckyblock.address,
+          HOPSPlanAddress = state.HOPSPlan.address,
+          GrowHopsPlusAddress = state.GrowHopsPlus.address,
+          BountyAddress = state.Bounty.address
+        } = {}) => {
       // if (state.tokensContract[candy]) return
 
-      let { web3js, address } = web3Store.state.web3Opt
+        let { web3js, address } = web3Store.state.web3Opt
 
-      // 如果没有从 web3 中获取到 address, 使用 localStorage 中的地址
-      address = address || window.localStorage.getItem('currentAddress')
+        // 如果没有从 web3 中获取到 address, 使用 localStorage 中的地址
+        address = address || window.localStorage.getItem('currentAddress')
 
-      const contractJson = {
-        address: candy,
-        abi: process.env.erc20ABI
-      }
+        const contractJson = {
+          address: candy,
+          abi: process.env.erc20ABI
+        }
 
-      const contract = await initContract(contractJson, web3js)
-      if (contract) {
+        const contract = await initContract(contractJson, web3js)
+        if (contract) {
         // console.log('candy, luckyAddress', candy, luckyAddress, address)
         // 存储 token contract
-        commit(mutationTypes.CONTRACT_SET_AIRDROP_TOKENS, { candiesTotal, candy, contract })
+          commit(mutationTypes.CONTRACT_SET_AIRDROP_TOKENS, { candiesTotal, candy, contract })
 
-        // luckyblock 存储用户授权到 token allowance
-        dispatch(actionTypes.CONTRACT_SET_LUCKYBLOCK_TOKEN_ALLOWANCE, { candiesTotal, candy, address, contract, luckyAddress })
+          // luckyblock 存储用户授权到 token allowance
+          dispatch(actionTypes.CONTRACT_SET_LUCKYBLOCK_TOKEN_ALLOWANCE, { candiesTotal, candy, address, contract, luckyAddress })
 
-        // HOPSPlan 存储用户授权到  token allowance
-        dispatch(actionTypes.CONTRACT_SET_HOPS_PLAN_TOKEN_ALLOWANCE, { candiesTotal, candy, address, contract, HOPSPlanAddress })
+          // HOPSPlan 存储用户授权到  token allowance
+          dispatch(actionTypes.CONTRACT_SET_HOPS_PLAN_TOKEN_ALLOWANCE, { candiesTotal, candy, address, contract, HOPSPlanAddress })
 
-        // Bounty 存储用户授权到  token allowance
-        dispatch(actionTypes.CONTRACT_SET_BOUNTY_TOKEN_ALLOWANCE, { candiesTotal, candy, address, contract, BountyAddress })
-      }
-    },
+          // GrowHOPSPlus 存储用户授权到  token allowance
+          dispatch(actionTypes.CONTRACT_SET_GROW_HOPS_PLUS_TOKEN_ALLOWANCE, { candiesTotal, candy, address, contract, GrowHopsPlusAddress })
+
+          // Bounty 存储用户授权到  token allowance
+          dispatch(actionTypes.CONTRACT_SET_BOUNTY_TOKEN_ALLOWANCE, { candiesTotal, candy, address, contract, BountyAddress })
+        }
+      },
 
     /**
      * set tokenAllowance
@@ -217,18 +250,48 @@ export default {
     /**
      * set hopsPlan tokenAllowance
      */
-    [actionTypes.CONTRACT_SET_HOPS_PLAN_TOKEN_ALLOWANCE]: async ({ state, commit }, { candiesTotal, candy, address, erc20Contract = state.tokensContract[candy], contractAddress = state.HOPSPlan.address } = {}) => {
-      // 向 erc20Contract 查询 address 给 HOPSPlan 授权操作多少个 token
-      const allowance = await erc20Contract.methods('allowance', [ address, contractAddress ])
-      commit(mutationTypes.CONTRACT_SET_HOPS_PLAN_TOKEN_ALLOWANCE, { candiesTotal, candy, allowance })
-      return allowance
-    },
+    [actionTypes.CONTRACT_SET_HOPS_PLAN_TOKEN_ALLOWANCE]:
+      async (
+        { state, commit },
+        {
+          candiesTotal,
+          candy,
+          address,
+          erc20Contract = state.tokensContract[candy],
+          contractAddress = state.HOPSPlan.address
+        } = {}
+      ) => {
+        // 向 erc20Contract 查询 address 给 HOPSPlan 授权操作多少个 token
+        const allowance = await erc20Contract.methods('allowance', [ address, contractAddress ])
+        commit(mutationTypes.CONTRACT_SET_HOPS_PLAN_TOKEN_ALLOWANCE, { candiesTotal, candy, allowance })
+        return allowance
+      },
+
+    /**
+     * set GrowHopsPlus tokenAllowance
+     */
+    [actionTypes.CONTRACT_SET_GROW_HOPS_PLUS_TOKEN_ALLOWANCE]:
+      async (
+        { state, commit },
+        {
+          candiesTotal,
+          candy,
+          address,
+          erc20Contract = state.tokensContract[candy],
+          contractAddress = state.GrowHopsPlus.address
+        } = {}
+      ) => {
+      // 向 erc20Contract 查询 address 给 GrowHopsPlus 授权操作多少个 token
+        const allowance = await erc20Contract.methods('allowance', [ address, contractAddress ])
+        commit(mutationTypes.CONTRACT_SET_GROW_HOPS_PLUS_TOKEN_ALLOWANCE, { candiesTotal, candy, allowance })
+        return allowance
+      },
 
     /**
      * set bounty tokenAllowance
      */
     [actionTypes.CONTRACT_SET_BOUNTY_TOKEN_ALLOWANCE]: async ({ state, commit }, { candiesTotal, candy, address, erc20Contract = state.tokensContract[candy], contractAddress = state.Bounty.address } = {}) => {
-      // 向 erc20Contract 查询 address 给 HOPSPlan 授权操作多少个 token
+      // 向 erc20Contract 查询 address 给 Bounty 授权操作多少个 token
       const allowance = await erc20Contract.methods('allowance', [ address, contractAddress ])
       commit(mutationTypes.CONTRACT_SET_BOUNTY_TOKEN_ALLOWANCE, { candiesTotal, candy, allowance })
       return allowance
@@ -259,18 +322,23 @@ export default {
       const tokens = candySymbols.list
       if (!tokens || !tokens.length) return
       const _tokensBalance = {}
-      await Promise.all(tokens.map(async token => {
-        const _address = token.address
-        const _symbol = token.symbol.toLocaleLowerCase()
-        const decimals = token.decimals || 18
-        if (!tokensContract[_address]) return
-        const tokenBalance = (await tokensContract[_address].methods('balanceOf', [ address ])).toNumber()
-        _tokensBalance[_symbol] = {
-          address: _address,
-          balance: tokenBalance,
-          balanceNumber: weiByDecimals(tokenBalance, decimals)
-        }
-      }))
+      try {
+        await Promise.all(tokens.map(async token => {
+          const _address = token.address
+          const _symbol = token.symbol.toLocaleLowerCase()
+          const decimals = token.decimals || 18
+          if (!tokensContract[_address]) return
+          const tokenBalance = (await tokensContract[_address].methods('balanceOf', [ address ])).toNumber()
+          _tokensBalance[_symbol] = {
+            address: _address,
+            balance: tokenBalance,
+            balanceNumber: weiByDecimals(tokenBalance, decimals)
+          }
+        }))
+      } catch (err) {
+        state.tokensBalance = _tokensBalance
+        state.tokensBalanceInit = true
+      }
       state.tokensBalance = _tokensBalance
       state.tokensBalanceInit = true
       console.log(' ------ contract ', _tokensBalance)

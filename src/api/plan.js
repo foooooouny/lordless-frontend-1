@@ -2,8 +2,8 @@ module.exports = axios => {
   return {
 
     // 获取 planBase 信息
-    getPlanBases: () => {
-      return axios.get('/api/planBases')
+    getPlanBases: (params) => {
+      return axios.get('/api/planBases', { params })
     },
 
     // 根据 planBaseId 获取 planBase 详情
@@ -34,6 +34,11 @@ module.exports = axios => {
     // 用户提取 less
     withdrawLessPlan: (params) => {
       return axios.put('/api/plan/withdraw', params)
+    },
+
+    // 获取用户 boosts
+    getPlanBoosts: (params) => {
+      return axios.get('/api/plan/boosts', params)
     }
   }
 }

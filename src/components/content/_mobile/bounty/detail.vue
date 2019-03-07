@@ -207,9 +207,26 @@
           </div>
           <ul ref="deposit-popup-slider" class="text-nowrap deposit-popup-slider">
             <li v-for="(item, index) of planBases" :key="index" class="inline-block deposit-slider-item" :data-active="item._id === activePlanBase._id">
-              <hops-plant :info="item" :isActive="item._id === activePlanBase._id" :lessBalance="-1" small @choosePlan="choosePlan($event, index)"/>
+              <hops-plant
+                :info="item"
+                :isActive="item._id === activePlanBase._id"
+                :lessBalance="-1"
+                small
+                :boost="userTotalBoost"
+                @choosePlan="choosePlan($event, index)"/>
             </li>
           </ul>
+          <div v-if="userTotalBoost" class="d-flex f-align-center deposit-boosts-box">
+            <span
+              v-for="(boost, index) of planBoostsList"
+              :key="index"
+              class="inline-block line-height-0 deposit-boost-icon">
+              <svg>
+                <use :xlink:href="boost.icon"/>
+              </svg>
+            </span>
+            <span class="TTFontBolder v-flex text-right">+ {{ userTotalBoost * 100 }}%</span>
+          </div>
           <div class="deposit-popup-balance" :class="{ 'is-failed': !enoughDepositLess }">
             <h2>≈ {{ activePlanBase._id ? weiByDecimals(depositLessAmount).toLocaleString() : '???' }} <span>LESS</span></h2>
             <p v-if="enoughDepositLess">LESS balance in wallet sufficient.</p>
@@ -236,9 +253,15 @@
       :tokenBets="unlockBountyTokenBets"/>
 
     <lordless-authorize
-      ref="depositAuthorize"
+      ref="plantAuthorize"
       blurs
       tokenAllowanceType="plant"
+      :tokenBets="depositTokenBets"/>
+
+    <lordless-authorize
+      ref="growplusAuthorize"
+      blurs
+      tokenAllowanceType="growplus"
       :tokenBets="depositTokenBets"/>
   </div>
 </template>
@@ -253,12 +276,12 @@ import { weiByDecimals } from 'utils/tool'
 import { scrollToLeft } from 'utils/tool/animate'
 import Decimal from 'decimal.js-light'
 
-import { metamaskMixins, checkTokensBalanceMixins, publicMixins } from '@/mixins'
+import { metamaskMixins, checkTokensBalanceMixins, publicMixins, planBoostsMixins } from '@/mixins'
 
 import { mapState } from 'vuex'
 export default {
   name: 'bounty-chest-detail-component',
-  mixins: [ metamaskMixins, checkTokensBalanceMixins, publicMixins ],
+  mixins: [ metamaskMixins, checkTokensBalanceMixins, publicMixins, planBoostsMixins ],
   data: () => {
     return {
       rendered: false,
@@ -287,6 +310,7 @@ export default {
   computed: {
     ...mapState('contract', [
       'HOPSPlan',
+      'GrowHopsPlus',
       'Bounty',
       'tokensContract',
       'tokensContractInit'
@@ -324,6 +348,12 @@ export default {
       return this.account && info.user.toLocaleLowerCase() === this.account.toLocaleLowerCase()
     },
 
+    boostNumber () {
+      const info = this.activePlanBase
+      if (!info._id) return 0
+      return new Decimal(info.lessToHops).mul(1 + this.userTotalBoost).toNumber()
+    },
+
     enoughHops () {
       const _hopsBalance = this.hopsBalance
       const _needHopsAmount = this.chestDetail.needHopsAmount
@@ -334,14 +364,15 @@ export default {
     // 选择 plant 计算需要的 less 数量
     depositLessAmount () {
       const { _id, minimumAmount, lessToHops } = this.activePlanBase || {}
+      const _boostNumber = this.boostNumber || lessToHops
       const _hopsBalance = this.hopsBalance
       const _needHopsAmount = this.chestDetail.needHopsAmount
       if (!_id || _hopsBalance === undefined) return 0
       // const _lessBalance = this.lessBalance
 
-      // 计算公式: (_needHopsAmount - _hopsBalance) / lessToHops
-      let amount = new Decimal(_needHopsAmount).sub(_hopsBalance).div(lessToHops).toNumber()
-      // let amount = (_needHopsAmount - _hopsBalance) / lessToHops
+      // 计算公式: (_needHopsAmount - _hopsBalance) / _boostNumber
+      let amount = new Decimal(_needHopsAmount).sub(_hopsBalance).div(_boostNumber).toNumber()
+      // let amount = (_needHopsAmount - _hopsBalance) / _boostNumber
       if (amount < minimumAmount) {
         amount = minimumAmount
       }
@@ -470,10 +501,11 @@ export default {
       const betterBase = (planBases.map(item => {
         const { _id, minimumAmount, lessToHops } = item || {}
         if (!_id) return item
+        const _boostNumber = this.boostNumber || lessToHops
 
-        // 计算公式: (this.chestDetail.needHopsAmount - this.hopsBalance) / lessToHops
-        let _amount = new Decimal(this.chestDetail.needHopsAmount).sub(_hopsBalance).div(lessToHops).toNumber()
-        // let amount = (this.chestDetail.needHopsAmount - this.hopsBalance) / lessToHops
+        // 计算公式: (this.chestDetail.needHopsAmount - this.hopsBalance) / _boostNumber
+        let _amount = new Decimal(this.chestDetail.needHopsAmount).sub(_hopsBalance).div(_boostNumber).toNumber()
+        // let amount = (this.chestDetail.needHopsAmount - this.hopsBalance) / _boostNumber
         if (_amount < minimumAmount) {
           _amount = minimumAmount
         }
@@ -524,7 +556,7 @@ export default {
 
     async getPlanBasesInfo () {
       try {
-        const res = await getPlanBases()
+        const res = await getPlanBases({ version: 2 })
         if (res.code === 1000 && res.data) {
           this.planBases = res.data
         }
@@ -717,11 +749,14 @@ export default {
       }
     },
 
-    async depositLESS () {
-      if (!this.enoughDepositLess || !this.activePlanBase._id) return
+    async depositLESS (info = this.activePlanBase) {
+      if (!this.enoughDepositLess || !info._id) return
       try {
-        const authorize = await this.$refs.depositAuthorize.checkoutAuthorize({ tokenAllowance: true })
+        const authorize = info.version === 2 ? this.$refs.growplusAuthorize : this.$refs.plantAuthorize
         if (!authorize) return
+        const bool = await authorize.checkoutAuthorize({ tokenAllowance: true })
+        // const authorize = await this.$refs.depositAuthorize.checkoutAuthorize({ tokenAllowance: true })
+        if (!bool) return
         this.doDepositLESS()
       } catch (err) {
         this.$notify.error({
@@ -734,7 +769,14 @@ export default {
     },
 
     // 种植 less
-    async doDepositLESS (lessAmount = this.depositLessAmount, account = this.account, info = this.activePlanBase, HOPSPlan = this.HOPSPlan, web3Opt = this.web3Opt) {
+    async doDepositLESS (
+      lessAmount = this.depositLessAmount,
+      account = this.account,
+      info = this.activePlanBase,
+      HOPSPlan = this.HOPSPlan,
+      GrowHopsPlus = this.GrowHopsPlus,
+      web3Opt = this.web3Opt
+    ) {
       if (!info._id) return
       this.btnLoading = true
 
@@ -753,6 +795,8 @@ export default {
       }
       lessAmount = new Decimal(lessAmount).toFixed(0)
 
+      const GrowContract = info.version === 2 ? GrowHopsPlus : HOPSPlan
+
       this.metamaskChoose = true
       console.log('------- do deposit less', lessAmount, info.planBaseId)
       try {
@@ -761,17 +805,19 @@ export default {
           values: [ info.planBaseId, lessAmount ]
         }
         const { gasPrice } = web3Opt
-        // const gas = (await growHopsParam.estimateGas(growHopsParam.name, growHopsParam.values)) || 139999
-        const gas = 299999
+        const gas = (await GrowContract.estimateGas(growHopsParam.name, growHopsParam.values)) || 299999
+        // const gas = 299999
 
         const params = {
           gas,
           gasPrice,
-          data: HOPSPlan[growHopsParam.name].getData(info.planBaseId, lessAmount),
+          // data: HOPSPlan[growHopsParam.name].getData(info.planBaseId, lessAmount),
+          data: GrowContract[growHopsParam.name].getData(info.planBaseId, lessAmount),
           // memo: 'buy a tavern by lordless',
           // feeCustomizable: true,
           value: 0,
-          to: HOPSPlan.address,
+          // to: HOPSPlan.address,
+          to: GrowContract.address,
           from: account
         }
 
@@ -1132,22 +1178,24 @@ export default {
 
   }
   .deposit-popup-header {
-    padding: 24px 20px 0;
+    padding: 20px 20px 0;
     color: #777;
   }
   .deposit-popup-need {
+    font-size: 16px;
     >span {
       color: #555;
     }
   }
   .deposit-popup-desc {
-    margin-top: 8px;
+    margin-top: 6px;
+    font-size: 14px;
     >span {
       color: #0079FF;
     }
   }
   .deposit-popup-slider {
-    padding: 18px 20px 30px;
+    padding: 18px 20px 10px;
     @include overflow();
   }
   .deposit-slider-item {
@@ -1168,12 +1216,24 @@ export default {
       margin-left: 12px;
     }
   }
+
+  // deposit-boosts-box
+  .deposit-boosts-box {
+    margin: 12px 0;
+    padding: 0 20px;
+    color: $--main-blue-color;
+  }
+  .deposit-boost-icon {
+    width: 28px;
+    height: 28px;
+  }
+
   .deposit-popup-balance {
     margin-bottom: 25px;
     padding: 0 20px;
     >h2 {
-      padding-top: 12px;
-      font-size: 24px;
+      padding-top: 10px;
+      font-size: 20px;
       color: #0B2A48;
       border-top: 1px solid #ddd;
       >span {

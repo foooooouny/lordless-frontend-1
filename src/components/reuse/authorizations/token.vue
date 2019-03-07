@@ -18,6 +18,7 @@
       <div v-if="isAll">
         <div
           class="loop-token-crowdsale"
+          v-show="!allTokenCrowdsaleInfos[betKey].hide"
           v-for="(betKey, index) of Object.keys(allTokenCrowdsaleInfos)" :key="index">
           <p class="token-crowdsale-name">For {{ allTokenCrowdsaleInfos[betKey].name }}</p>
           <ul>
@@ -134,21 +135,25 @@ export default {
     ...mapState('contract', [
       'Luckyblock',
       'HOPSPlan',
+      'GrowHopsPlus',
       'Bounty',
       'BountyNFT',
       'bountyNFTApproved',
       'tokensContract',
       'luckyblockTokenAllowances',
       'HOPSPlanTokenAllowances',
+      'GrowHopsPlusTokenAllowances',
       'BountyTokenAllowances',
       'BountyTokenAllowancesInit',
       'HOPSPlanTokenAllowancesInit',
+      'GrowHopsPlusTokenAllowancesInit',
       'luckyblockTokenAllowancesInit',
       'checkBountyNFTApprovedInit'
     ]),
 
     allTokenAllowanceInit () {
-      return this.BountyTokenAllowancesInit && this.HOPSPlanTokenAllowancesInit && this.luckyblockTokenAllowancesInit && this.checkBountyNFTApprovedInit
+      // return this.BountyTokenAllowancesInit && this.HOPSPlanTokenAllowancesInit && this.luckyblockTokenAllowancesInit && this.checkBountyNFTApprovedInit
+      return this.BountyTokenAllowancesInit && this.HOPSPlanTokenAllowancesInit && this.GrowHopsPlusTokenAllowancesInit && this.luckyblockTokenAllowancesInit && this.checkBountyNFTApprovedInit
     },
 
     luckyAddress () {
@@ -157,6 +162,10 @@ export default {
 
     HOPSPlanAddress () {
       return this.HOPSPlan ? this.HOPSPlan.address : ''
+    },
+
+    GrowHopsPlusAddress () {
+      return this.GrowHopsPlus ? this.GrowHopsPlus.address : ''
     },
 
     BountyAddress () {
@@ -192,8 +201,11 @@ export default {
       const luckyblockFilter = [ 'less' ]
       const luckyblockTokenBets = []
 
-      const plantFilter = [ 'less' ]
-      const plantTokenBets = []
+      // const plantFilter = [ 'less' ]
+      // const plantTokenBets = []
+
+      const growplusFilter = [ 'less' ]
+      const growplusTokenBets = []
 
       const bountyFilter = [ 'hops' ]
       const bountyTokenBets = [
@@ -210,8 +222,14 @@ export default {
             count: 1e25
           })
         }
-        if (plantFilter.includes(candy.symbol.toLocaleLowerCase())) {
-          plantTokenBets.push({
+        // if (plantFilter.includes(candy.symbol.toLocaleLowerCase())) {
+        //   plantTokenBets.push({
+        //     candy,
+        //     count: 1e25
+        //   })
+        // }
+        if (growplusFilter.includes(candy.symbol.toLocaleLowerCase())) {
+          growplusTokenBets.push({
             candy,
             count: 1e25
           })
@@ -225,7 +243,8 @@ export default {
       }
       return {
         luckyblock: luckyblockTokenBets,
-        plant: plantTokenBets,
+        // plant: plantTokenBets,
+        growplus: growplusTokenBets,
         bounty: bountyTokenBets
       }
     },
@@ -258,8 +277,22 @@ export default {
           contractAddress: this.luckyAddress,
           contractLink: `${process.env.ETHERSCANURL}/address/${this.luckyAddress}#code`
         },
+        growplus: {
+          name: 'LESS deposit growplus',
+          behavior: 'Deposit LESS',
+          contractText: 'Deposit LESS',
+          // tokenAllowances: this.HOPSPlanTokenAllowances,
+          tokenAllowances: this.GrowHopsPlusTokenAllowances,
+          // checkAllowancesMethod: this[actionTypes.CONTRACT_SET_HOPS_PLAN_TOKEN_ALLOWANCE],
+          checkAllowancesMethod: this[actionTypes.CONTRACT_SET_GROW_HOPS_PLUS_TOKEN_ALLOWANCE],
+          // contractAddress: this.HOPSPlanAddress,
+          contractAddress: this.GrowHopsPlusAddress,
+          // contractLink: `${process.env.ETHERSCANURL}/address/${this.HOPSPlanAddress}#code`
+          contractLink: `${process.env.ETHERSCANURL}/address/${this.GrowHopsPlusAddress}#code`
+        },
         plant: {
-          name: 'LESS deposit',
+          hide: true,
+          name: 'LESS deposit plant',
           behavior: 'Deposit LESS',
           contractText: 'Deposit LESS',
           tokenAllowances: this.HOPSPlanTokenAllowances,
@@ -292,6 +325,7 @@ export default {
     ...mapActions('contract', [
       actionTypes.CONTRACT_SET_LUCKYBLOCK_TOKEN_ALLOWANCE,
       actionTypes.CONTRACT_SET_HOPS_PLAN_TOKEN_ALLOWANCE,
+      actionTypes.CONTRACT_SET_GROW_HOPS_PLUS_TOKEN_ALLOWANCE,
       actionTypes.CONTRACT_SET_BOUNTY_TOKEN_ALLOWANCE,
       actionTypes.CONTRACT_CHECK_BOUNTYNFT_APPROVE
     ]),
@@ -307,6 +341,7 @@ export default {
         const keys = Object.keys(_allTokenCrowdsaleInfos)
         for (const key of keys) {
           const _tokenBets = _allBets[key]
+          if (!_tokenBets) continue
           for (const bet of _tokenBets) {
             const _type = bet.type
             // 如果是 721 授权
@@ -393,6 +428,7 @@ export default {
         for (const key of keys) {
           // 如果是 token 授权
           const _tokenBets = _allBets[key]
+          if (!_tokenBets) continue
           // const _tokenAllowances = _crowdsaleInfo.tokenAllowances
           for (const bet of _tokenBets) {
             const _type = bet.type

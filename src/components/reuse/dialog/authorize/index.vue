@@ -181,6 +181,7 @@ export default {
       'isCrowdsaleApproved',
       'luckyblockTokenAllowances',
       'HOPSPlanTokenAllowances',
+      'GrowHopsPlusTokenAllowances',
       'BountyTokenAllowances',
       'bountyNFTApproved'
     ]),
@@ -489,6 +490,7 @@ export default {
         const _allowances = {
           luckyblock: this.luckyblockTokenAllowances,
           plant: this.HOPSPlanTokenAllowances,
+          growplus: this.GrowHopsPlusTokenAllowances,
           bounty: this.BountyTokenAllowances
         }
         const allowances = _allowances[this.tokenAllowanceType]
