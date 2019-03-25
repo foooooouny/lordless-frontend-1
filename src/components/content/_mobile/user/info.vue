@@ -2,7 +2,7 @@
   <div class="mobile-user-info-box">
     <div class="user-info-container">
       <div class="user-info-header">
-        <div class="d-flex f-align-start info-header-content" @click.stop="$router.push('/owner/detail')">
+        <div class="d-flex f-align-start info-header-content" @click.stop="$router.push(`/user/${account}/info?refer=${$route.path}`)">
           <lordless-blockies
             :seed="account"
             :scale="6"
@@ -36,7 +36,8 @@
         <div class="d-flex f-align-center user-permission-container">
           <ul class="d-flex f-align-center user-boosts-box user-permission-ul">
             <li class="user-permission-item"
-              v-for="(boost, index) of ownerBoosts" :key="index">
+              v-for="(boost, index) of userBoosts" :key="index"
+              @click.stop="boost.path ? $router.push(boost) : null">
               <span class="inline-block line-height-0 user-permission-icon">
                 <svg>
                   <use :xlink:href="boost.number ? boost.icon : boost.grayIcon"/>
@@ -46,7 +47,8 @@
           </ul>
           <ul class="d-flex f-align-center user-commissions-box user-permission-ul">
             <li class="user-permission-item"
-              v-for="(commission, index) of ownerCommissions" :key="index">
+              v-for="(commission, index) of userCommissions" :key="index"
+              @click.stop="commission.path ? $router.push(commission) : null">
               <span class="inline-block line-height-0 user-permission-icon">
                 <svg>
                   <use :xlink:href="commission.open ? commission.icon : commission.grayIcon"/>
@@ -137,24 +139,14 @@
 </template>
 
 <script>
-import { checkTokensBalanceMixins, planBoostsMixins, publicMixins } from '@/mixins'
-
-import { getUserOverview } from 'api'
 import { formatDecimal } from 'utils/tool'
-
-import { actionTypes } from '@/store/types'
-import { mapState, mapActions } from 'vuex'
+import { mapState } from 'vuex'
+import { checkTokensBalanceMixins, planBoostsMixins, publicMixins, overviewPublicMixins } from '@/mixins'
 export default {
   name: 'mobile-lordless-user-info',
-  mixins: [ checkTokensBalanceMixins, planBoostsMixins, publicMixins ],
+  mixins: [ checkTokensBalanceMixins, planBoostsMixins, publicMixins, overviewPublicMixins ],
   data: () => {
     return {
-      loading: true,
-      overviews: {
-        holdings: {},
-        totalEarnings: {},
-        depositsCandies: {}
-      },
 
       lordlessOuterInfos: [
         {
@@ -180,56 +172,6 @@ export default {
       'userInfo',
       'userHome'
     ]),
-    ...mapState('candy', [
-      'candyPrice'
-    ]),
-
-    ownerBoosts () {
-      const planBoosts = this.planBoosts
-      if (!planBoosts.boosts) return []
-
-      const infos = {
-        referee: {
-          icon: '#icon-color-certificate',
-          grayIcon: '#icon-gray-certificate',
-          path: '/owner/referee'
-        },
-        recruit: {
-          icon: '#icon-color-shield',
-          grayIcon: '#icon-gray-shield',
-          path: '/taverns'
-        },
-        tavernkeep: {
-          icon: '#icon-color-tavernkeep',
-          grayIcon: '#icon-gray-tavernkeep',
-          path: '/taverns'
-        }
-      }
-      return planBoosts.boosts.map((item) => {
-        return Object.assign({}, item, infos[item.type])
-      })
-    },
-
-    ownerCommissions () {
-      const planBoosts = this.planBoosts
-      if (!planBoosts.commissions) return []
-
-      const infos = {
-        referrer: {
-          icon: '#icon-color-diploma',
-          grayIcon: '#icon-gray-diploma',
-          path: '/taverns'
-        },
-        recruit: {
-          icon: '#icon-color-flag',
-          grayIcon: '#icon-gray-flag',
-          path: '/taverns'
-        }
-      }
-      return planBoosts.commissions.map((item) => {
-        return Object.assign({}, item, infos[item.type])
-      })
-    },
 
     ownerAssets () {
       const overviews = this.overviews
@@ -260,7 +202,7 @@ export default {
         {
           text: 'Taverns',
           value: overviews.tavernCount,
-          path: '/owner/taverns'
+          path: `/user/${this.account}/taverns`
         }
       ]
     },
@@ -299,51 +241,6 @@ export default {
         }
       ]
     }
-  },
-  watch: {
-    account (val) {
-      console.log('---------- user account', val)
-      if (val) this.initInfo()
-    }
-  },
-  methods: {
-    ...mapActions('user', [
-      actionTypes.USER_SET_USER_HOME,
-      actionTypes.USER_SET_USER_BY_TOKEN
-    ]),
-
-    countDownHandle () {
-      this.initInfo()
-      this[actionTypes.USER_SET_USER_BY_TOKEN]()
-    },
-
-    initInfo () {
-      this.getUserMessage()
-      this[actionTypes.USER_SET_USER_HOME]()
-    },
-
-    // 获取用户 overview 信息
-    async getUserMessage () {
-      this.loading = true
-      try {
-        const res = await getUserOverview({ single: true })
-        if (res.code === 1000) {
-          this.overviews = Object.assign({}, this.overviews, res.data)
-        }
-      } catch (err) {
-        this.loading = false
-      }
-      this.loading = false
-    }
-  },
-  activated () {
-    this[actionTypes.USER_SET_USER_HOME]()
-  },
-  async mounted () {
-    this.$nextTick(() => {
-      // this.initClipboard()
-      this.initInfo()
-    })
   }
 }
 </script>
