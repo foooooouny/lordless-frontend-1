@@ -149,7 +149,7 @@
 </template>
 
 <script>
-import { formatDecimal } from 'utils/tool'
+import { formatDecimal, weiByDecimals } from 'utils/tool'
 import { mapState } from 'vuex'
 import { checkTokensBalanceMixins, planBoostsMixins, publicMixins, overviewPublicMixins } from '@/mixins'
 export default {
@@ -206,7 +206,7 @@ export default {
         },
         {
           text: 'Deposited',
-          value: `${(overviews.depositsCandies.lessCount || '0').toLocaleString()} LESS`,
+          value: `${(overviews.depositsCandies.lessCount ? weiByDecimals(overviews.depositsCandies.lessCount) : '0').toLocaleString()} LESS`,
           path: '/owner/hops'
         },
         {
