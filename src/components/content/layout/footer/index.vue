@@ -125,7 +125,7 @@
                 <use xlink:href="#icon-telegram"/>
               </svg>
             </a>
-            <a class="inline-block" href="https://twitter.com/LordLessIo" target="_blank">
+            <a class="inline-block" href="https://twitter.com/lordless_global" target="_blank">
               <svg>
                 <use xlink:href="#icon-twitter"/>
               </svg>
@@ -182,9 +182,9 @@ export default {
   },
   methods: {
     jumpHome () {
-      const home = this.userHome || {}
-      if (!home._id) return
-      this.$router.push(`/tavern/${home.ldb.id}`)
+      // const home = this.userHome || {}
+      if (!this.userHome) return
+      this.$router.push(`/tavern/${this.userHome.homeInfo.tavern.id}`)
     }
   }
 }

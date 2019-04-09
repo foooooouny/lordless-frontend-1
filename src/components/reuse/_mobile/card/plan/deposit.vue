@@ -162,6 +162,11 @@ export default {
     detailsInfo () {
       const info = this.info
       if (!info._id) return {}
+      let _hopsAmount = info.hopsAmount ? weiByDecimals(info.hopsAmount) : 0
+
+      if (!_hopsAmount) {
+        _hopsAmount = (info.planBase && info.lessAmount) ? weiByDecimals((new Decimal(info.lessAmount).mul(info.planBase.lessToHops * (1 + (info.boost / 100))).toNumber())) : '0'
+      }
       return [
         {
           title: 'Plan',
@@ -170,6 +175,10 @@ export default {
         {
           title: 'HELD',
           text: this.heldValue
+        },
+        {
+          title: 'HOPS',
+          text: `+ ${(_hopsAmount).toLocaleString()}`
         },
         {
           title: 'Deposit Period',

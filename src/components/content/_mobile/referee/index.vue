@@ -2,8 +2,8 @@
   <div class="lordless-referee-box">
     <transition name="ld-hide-fade" mode="out-in">
       <referee-skeletion v-if="loading"/>
-      <div v-else class="lordless-referee-container">
-        <lordless-fixed :top="44">
+      <div v-else class="lordless-referee-container" :class="{ 'is-website': isWebsite }">
+        <lordless-fixed :top="44" :isStatic="isWebsite">
           <div class="d-flex f-auto-center lordless-referee-header">
             <div class="TTFontBolder v-flex referee-header-container">
               <p class="header-address-tip" :class="{ 'is-failed': (referrerInputModel && !isRequireReferrer && editedReferrer) || isReferrerOwner || isAddressReferrer }">{{ headerAddressTip }}</p>
@@ -30,7 +30,7 @@
                   </div>
                 </div>
 
-                <div class="referee-header-right">
+                <div class="cursor-pointer referee-header-right">
                   <p v-if="!isTxPending && isEditReferrer && !isShowInput && (!isQueryReferrer || !isRequireReferrer)"
                     class="referee-header-control"
                     @click.stop="editReferrer">
@@ -40,7 +40,8 @@
                     v-else-if="!isEditReferrer || isQueryReferrer || isTxPending"
                     :seed="referrerAddress"
                     theme="light"
-                    :scale="4"/>
+                    :scale="4"
+                    jump/>
                 </div>
               </div>
             </div>
@@ -70,18 +71,6 @@
               </div>
             </li>
           </ul>
-          <div class="invitation-reward-tips">
-            <p class="d-flex f-align-center">
-              <span class="inline-block line-height-0 invitation-tips-icon">
-                <svg>
-                  <use xlink:href="#icon-tips"/>
-                </svg>
-              </span>
-              <span>Tips</span>
-            </p>
-            <p>The materials can be made into Bounty Chest which can be sold or opened.</p>
-            <p>HELD, HOPS earned on every LESS per deposit, describes the income of the deposit.</p>
-          </div>
           <div class="text-center invitation-tg-group-box">
             <span class="inline-block line-height-0 tg-group-icon">
               <svg>
@@ -92,6 +81,18 @@
               <a href="https://t.me/lordless_global" target="_blank" class="text-underline">LORDLESS Global Group</a>
             </h3>
             <p>{{ telegramStatus.text }}</p>
+          </div>
+          <div class="invitation-reward-tips">
+            <p class="d-flex f-align-center invitation-tips-title">
+              <span class="inline-block line-height-0 invitation-tips-icon">
+                <svg>
+                  <use xlink:href="#icon-tips"/>
+                </svg>
+              </span>
+              <span>Tips</span>
+            </p>
+            <p class="invitation-tips-desc">The materials can be made into Bounty Chest which can be sold or opened.</p>
+            <p class="invitation-tips-desc">HELD, HOPS earned on every LESS per deposit, describes the income of the deposit.</p>
           </div>
         </div>
         <lordless-fixed :bottom="0" v-if="!isBinded && this.referrerAddress">
@@ -118,6 +119,12 @@ import { mapState } from 'vuex'
 export default {
   name: 'lordless-referee-component',
   mixins: [ metamaskMixins, publicMixins, initLoadingMixins ],
+  props: {
+    isWebsite: {
+      type: Boolean,
+      default: false
+    }
+  },
   data: () => {
     return {
       rendered: false,
@@ -417,11 +424,31 @@ export default {
 </script>
 <style lang="scss" scoped>
   .lordless-referee-container {
-    padding-bottom: 50px;
+    padding-bottom: 100px;
     background-repeat: no-repeat;
     background-size: 100% auto;
     background-position: 0 100%;
     background-image: url('~static/svg/referral/bg-pricing-education.svg');
+    &.is-website {
+      padding-bottom: 200px;
+      .lordless-referee-header {
+        // padding: 12px 24px 0;
+        height: 100px;
+      }
+      .lordless-referee-cnt {
+        padding-top: 50px;
+      }
+      .invitation-tips-title {
+        font-size: 16px;
+      }
+      .invitation-tips-desc {
+        font-size: 14px;
+      }
+      .invitation-tips-icon {
+        width: 14px;
+        height: 14px;
+      }
+    }
   }
   .lordless-referee-header {
     // padding: 52px 20px 0;
@@ -545,17 +572,16 @@ export default {
   }
   .invitation-reward-tips {
     margin-top: 50px;
-    >p {
-      color: #777;
-      font-size: 12px;
-      &:first-of-type {
-        font-size: 14px;
-        color: #555;
-      }
-      &:not(:first-of-type) {
-        margin-top: 8px;
-      }
-    }
+  }
+  .invitation-tips-title {
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #555;
+  }
+  .invitation-tips-desc {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #777;
   }
   .invitation-tips-icon {
     margin-right: 6px;
@@ -566,8 +592,7 @@ export default {
 
   // invitation-tg-group-box
   .invitation-tg-group-box {
-    margin-top: 32px;
-    padding: 32px 0 84px;
+    margin-top: 64px;
     >h3 {
       margin-top: 24px;
       font-size: 16px;

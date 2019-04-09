@@ -1,5 +1,5 @@
 <template>
-  <div id="mobile-referral-referees" class="referral-referees-box">
+  <div id="mobile-referral-referees" class="referral-referees-box" :class="{ 'is-website': isWebsite }">
     <transition name="ld-hide-fade" mode="out-in" @after-enter="afterEnter">
       <referral-referees-skeletion v-if="loading"/>
       <div v-else-if="referees.total" class="referral-referees-container">
@@ -10,7 +10,7 @@
         <ul class="referral-referees-list">
           <li class="d-flex f-align-start referral-referees-item"
             v-for="(item, index) of referees.list" :key="index">
-            <lordless-blockies :scale="5" :seed="item.referee.address"/>
+            <lordless-blockies :scale="5" :seed="item.referee.address" jump/>
             <div class="v-flex col-flex referees-item-info">
               <p class="text-break referees-item-address">{{ item.referee.address }}</p>
               <span class="inline-block referees-tx-status" :class="{ 'is-confirmed': item.refererTx.status === 1, 'is-confirming': item.refererTx.status === 0 }">
@@ -57,6 +57,20 @@ import { initLoadingMixins, publicMixins } from '@/mixins'
 export default {
   name: 'referral-referees-component',
   mixins: [ initLoadingMixins, publicMixins ],
+  props: {
+    isWebsite: {
+      type: Boolean,
+      default: false
+    },
+    propPage: {
+      type: Number,
+      default: 1
+    },
+    propTotal: {
+      type: Number,
+      default: 0
+    }
+  },
   data: () => {
     return {
       rendered: false,
@@ -86,6 +100,9 @@ export default {
           this.linkClipBool = false
         }, 1500)
       }
+    },
+    propPage (pn) {
+      this.initReferees({ pn })
     }
   },
   components: {
@@ -103,10 +120,10 @@ export default {
         e.clearSelection()
       })
     },
-    async initReferees () {
+    async initReferees ({ pn = 1 } = {}) {
       this.loadMoreLoading = false
       this.loading = true
-      const { list = [], pn = 1, ps = 10, confirmed = 0, confirming = 0, total = 0 } = (await this.getRefereeMethod({ pn: 1 })) || {}
+      const { list = [], ps = 10, confirmed = 0, confirming = 0, total = 0 } = (await this.getRefereeMethod({ pn })) || {}
       this.referees = {
         list,
         pn,
@@ -115,6 +132,9 @@ export default {
         confirming,
         total,
         noMore: total <= ps
+      }
+      if (this.isWebsite) {
+        this.$emit('update:propTotal', total)
       }
       this.loading = false
     },
@@ -161,6 +181,8 @@ export default {
     scrollListenerFunc ({ bool = false, bottom = 80, pHeight = document.body.offsetHeight } = {}) {
       this.scrollHandle && document.removeEventListener('scroll', this.scrollHandle)
       this.scrollHandle = null
+
+      if (this.isWebsite) return
 
       const box = document.getElementById('mobile-referral-referees')
       let bHeight = box ? box.offsetHeight : 0
@@ -212,6 +234,18 @@ export default {
   .referral-referees-box {
     padding-top: 44px;
     padding-bottom: 44px;
+    &.is-website {
+      padding: 0;
+      .referral-referees-container {
+        margin-top: 0;
+      }
+      .referral-referees-list {
+        margin-top: 24px;
+      }
+      .referees-noMore-text {
+        display: none;
+      }
+    }
   }
   .referral-referees-container {
     margin-top: 16px;

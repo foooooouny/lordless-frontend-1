@@ -51,7 +51,7 @@
               <div class="header-left-cnt-box">
                 <div class="header-left-cnt-container">
                   <figure class="header-left-cnt">
-                    <h1 v-if="info.name.zh" :class="{ 'lg': info.name.zh.length > 6, 'md': info.name.zh.length > 9, 'sm': info.name.zh.length > 46 }">{{ info.name.zh }}</h1>
+                    <h1 v-if="info.name.zh" :class="{ 'lg': info.name.zh.length > 6, 'md': info.name.zh.length > 9, 'sm': info.name.zh.length > 46 }">[{{ levelText }}]{{ info.name.zh }}</h1>
                     <p class="detail-ldb-tag">
                       <span class="inline-block" v-for="type of info.ldbType" :key="type">{{ type | formatLdbType }}</span>
                     </p>
@@ -114,12 +114,12 @@
                       </li>
                     </ul>
                     <!-- <p class="detail-ldb-desc">{{ info.desc.zh | sliceStr({ end: 62 }) }}...</p> -->
-                    <lordless-btn
+                    <!-- <lordless-btn
                       class="TTFontBolder ldb-home-btn"
                       theme="blue"
                       shadow
                       :disabled="isHome"
-                      @click="setHome">{{ isHome ? 'Your home' : 'Set as home' }}</lordless-btn>
+                      @click="setHome">{{ isHome ? 'Your home' : 'Set as home' }}</lordless-btn> -->
                   </figure>
                 </div>
               </div>
@@ -258,6 +258,16 @@ export default {
     // },
     apLeft () {
       return this.info.apLeft
+    },
+    levelText () {
+      const info = this.info
+      const texts = {
+        4: 'SS',
+        3: 'S',
+        2: 'A',
+        1: 'B'
+      }
+      return texts[info.chain.popularity]
     }
   },
   watch: {
@@ -380,10 +390,10 @@ export default {
     /**
      * 设置home
      */
-    async setHome (ldbInfo = this.info) {
-      if (this.isHome) return
-      this.$emit('setHome')
-    },
+    // async setHome (ldbInfo = this.info) {
+    //   if (this.isHome) return
+    //   this.$emit('setHome')
+    // },
 
     /**
      * 领取糖果
@@ -1254,7 +1264,7 @@ export default {
 
 
   .header-left-cnt-container {
-    padding-top: 48px;
+    padding-top: 68px;
     padding-bottom: 40px;
     margin-left: 51%;
     width: 100%;
@@ -1315,7 +1325,7 @@ export default {
   }
   .header-info-item {
     &:not(:first-of-type) {
-      margin-top: 16px;
+      margin-top: 20px;
     }
   }
   .header-info-title {

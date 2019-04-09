@@ -1,10 +1,11 @@
 <template>
-  <div id="mobile-referral-rewards" class="referral-rewards-box">
+  <div ref="lordless-load-more-box" id="mobile-referral-rewards" class="referral-rewards-box" :class="{ 'is-website': isWebsite }">
     <transition name="ld-hide-fade" mode="out-in" @after-enter="afterEnter
     ">
-      <referral-rewards-skeletion v-if="loading"/>
+      <referral-rewards-skeletion isWebsite v-if="loading"/>
       <div v-else class="referral-reward-container">
         <lordless-tabs-navbar
+          v-if="!isWebsite"
           :originTab="originTab"
           :tabs="tabs"
           history
@@ -28,7 +29,7 @@
                   <div class="d-flex f-align-center record-info-middle">
                     <span class="text-upper">{{ record.candy ? record.candy.symbol : 'Token' }}</span>
                     <div class="v-flex d-flex f-align-center record-info-address-box">
-                      <lordless-blockies :scale="3" :seed="record.from"/>
+                      <lordless-blockies :scale="3" :seed="record.from" jump/>
                       <span>{{ record.from | splitAddress({ before: 8, end: 8, symbol: '***' }) }}</span>
                     </div>
                   </div>
@@ -77,9 +78,27 @@ import { loadMoreDataMixins } from '@/mixins'
 export default {
   name: 'referral-rewards-component',
   mixins: [ loadMoreDataMixins ],
-  data: () => {
+  props: {
+    isWebsite: {
+      type: Boolean,
+      default: false
+    },
+    sortModel: {
+      type: String,
+      default: null
+    },
+    propPage: {
+      type: Number,
+      default: 1
+    },
+    propTotal: {
+      type: Number,
+      default: 0
+    }
+  },
+  data: (vm) => {
     return {
-      originTab: 'materials',
+      originTab: vm.sortModel || 'materials',
       tabs: [
         {
           name: 'materials',
@@ -87,7 +106,7 @@ export default {
         },
         {
           name: 'hops',
-          label: 'HOPS'
+          label: 'Commission'
         }
       ],
       rendered: false,
@@ -100,7 +119,8 @@ export default {
         noMore: false
       },
       changeLoading: false,
-      linkClipBool: false
+      linkClipBool: false,
+      disabledScroll: vm.isWebsite
       // loadMoreLoading: false
     }
   },
@@ -110,12 +130,18 @@ export default {
     }
   },
   watch: {
-    originTab (val) {
-      val && this.changeReferralRecords(val)
+    originTab (type) {
+      type && this.changeReferralRecords({ type })
     },
     'loadDatas.list' (val) {
       this.rewriteRecords(val)
       console.log('------ watch materialsRewards.list', val)
+    },
+    sortModel (val) {
+      val && this.tabChange(val)
+    },
+    propPage (pn) {
+      this.initReferralRecords({ pn })
     }
   },
   components: {
@@ -154,10 +180,10 @@ export default {
         }
       }
     },
-    async changeReferralRecords (type = this.originTab) {
+    async changeReferralRecords ({ type = this.originTab, pn = 1 } = {}) {
       this.loadMoreLoading = false
       this.changeLoading = true
-      const { list = [], pn = 1, ps = 10, total = 0 } = (await this.getDataMethod({ pn: 1, type })) || {}
+      const { list = [], ps = 10, total = 0 } = (await this.getDataMethod({ pn, type })) || {}
       this.loadDatas = {
         list,
         pn,
@@ -165,20 +191,26 @@ export default {
         total,
         noMore: total <= ps
       }
+      if (this.isWebsite) {
+        this.$emit('update:propTotal', total)
+      }
       console.log('---- loadDatas', this.loadDatas)
       this.changeLoading = false
     },
 
-    async initReferralRecords (type = this.originTab) {
+    async initReferralRecords ({ type = this.originTab, pn = 1 } = {}) {
       this.loadMoreLoading = false
       this.loading = true
-      const { list = [], pn = 1, ps = 10, total = 0 } = (await this.getDataMethod({ pn: 1, type })) || {}
+      const { list = [], ps = 10, total = 0 } = (await this.getDataMethod({ pn, type })) || {}
       this.loadDatas = {
         list,
         pn,
         ps,
         total,
         noMore: total <= ps
+      }
+      if (this.isWebsite) {
+        this.$emit('update:propTotal', total)
       }
       this.loading = false
     },
@@ -271,6 +303,20 @@ export default {
 <style lang="scss" scoped>
   .referral-rewards-box {
     padding-top: 44px;
+    padding-bottom: 50px;
+    &.is-website {
+      padding-top: 0px;
+      // .referral-rewards-cnt {
+      //   margin-top: -12px;
+      // }
+      .referral-records-date {
+        display: none;
+        // padding-bottom: 12px;
+      }
+      .records-noMore-text {
+        display: none;
+      }
+    }
   }
 
   .referral-rewards-cnt {
@@ -290,12 +336,12 @@ export default {
     background-color: #fff;
   }
   .referral-record-icon {
-    padding: 8px;
+    padding: 6px;
     width: 32px;
     height: 32px;
     fill: #fff;
     background-image: linear-gradient(-225deg, #124BDC 0%, #0079FF 100%);
-    border-radius: 100%;
+    border-radius: 5px;
     box-sizing: border-box;
     transform: translateY(20px);
   }

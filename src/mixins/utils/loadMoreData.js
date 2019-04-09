@@ -10,6 +10,7 @@ export default {
     async loadMoreData (cb) {
       this.loadMoreLoading = true
       const info = this.loadDatas
+      console.log('------ loadMoreData info', info)
       const pn = info.pn + 1
       const result = (await this.getDataMethod({ pn })) || {}
       const { list = [], ps = 10 } = result
@@ -35,6 +36,7 @@ export default {
     scrollListenerFunc ({ bool = false, bottom = 80, pHeight = document.body.offsetHeight } = {}) {
       this.scrollHandle && document.removeEventListener('scroll', this.scrollHandle)
       this.scrollHandle = null
+      if (this.disabledScroll) return
 
       const box = this.$refs['lordless-load-more-box']
       let bHeight = box ? box.offsetHeight : 0
@@ -43,7 +45,7 @@ export default {
       if (!bHeight || bHeight - bottom < pHeight) return
 
       const handleFunc = () => {
-        if (bool || this.planRecords.noMore) return
+        if (bool || this.loadDatas.noMore) return
         if (!bHeight) bHeight = box.offsetHeight
         const scrollTop = document.documentElement.scrollTop || window.pageYOffset || document.body.scrollTop
 

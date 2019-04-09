@@ -38,7 +38,7 @@
               class="TTFontBolder d-flex f-align-center hops-boost-item" :class="{ 'is-none': boost.none }" @click.stop="boost.routePath ? $router.push(boost.routePath) : null">
                 <span class="inline-block line-height-0 hops-boost-icon">
                   <svg>
-                    <use :xlink:href="boost.icon"/>
+                    <use :xlink:href="boost.number ? boost.icon : boost.grayIcon"/>
                   </svg>
                 </span>
                 <span class="v-flex boost-item-text">{{ boost.text }}</span>
@@ -228,13 +228,13 @@ export default {
     initMethod () {
       this.getPlanBasesMethod()
     },
-    async getPlanBasesMethod () {
+    async getPlanBasesMethod (type = this.$route.query.type) {
       this.loading = true
       try {
         const res = await getPlanBases({ version: 2 })
         if (res.code === 1000 && res.data) {
           this.planBases = res.data
-          this.activePlan = res.data[1]
+          this.activePlan = type === 'recommend' ? res.data.filter(item => item.recommend)[0] || res.data[1] : res.data[1]
         }
       } catch (err) {
         console.log('0---- err', err.message)

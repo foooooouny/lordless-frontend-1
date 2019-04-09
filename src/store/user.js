@@ -3,20 +3,23 @@
  */
 
 import { mutationTypes, actionTypes } from './types'
-import { getUserByAddress, getUserByToken, getUserHome, login } from '../api'
+import { getUserByAddress, getUserByToken, getRecruitUserHome, login, getPlanBoosts } from '../api'
 import { stringifyParse, getObjStorage, nextAC } from 'utils/tool'
 import web3Store from './web3'
 export default {
   namespaced: true,
   state: {
 
-    userHome: {},
+    userHome: null,
 
     // 当前用户
     userInfo: { default: true },
 
     // user single 用户信息
-    uSingleInfo: {}
+    uSingleInfo: {},
+
+    // user planBoosts 信息
+    userPlanBoosts: {}
   },
   mutations: {
 
@@ -50,6 +53,11 @@ export default {
     [mutationTypes.USER_SET_USER_HOME]: (state, { home, update = false } = {}) => {
       if (!update) state.userHome = stringifyParse(home)
       else state.userHome = home ? stringifyParse(Object.assign({}, state.userHome, home)) : {}
+    },
+
+    // 存储 userPlanBoosts 信息
+    [mutationTypes.USER_SET_PLAN_BOOSTS]: (state, payload) => {
+      state.userPlanBoosts = stringifyParse(payload)
     }
   },
   actions: {
@@ -162,10 +170,20 @@ export default {
         commit(mutationTypes.USER_SET_USER_HOME, { home, update })
         return
       }
-      const res = await getUserHome()
+      const res = await getRecruitUserHome()
       if (res.code === 1000 && res.data) {
         commit(mutationTypes.USER_SET_USER_HOME, { home: res.data })
       } else commit(mutationTypes.USER_SET_USER_HOME)
+    },
+
+    /**
+     * 根据token获取用户 planBoosts
+     */
+    [actionTypes.USER_SET_PLAN_BOOSTS]: async ({ commit }) => {
+      const res = await getPlanBoosts()
+      if (res.code === 1000 && res.data) {
+        commit(mutationTypes.USER_SET_PLAN_BOOSTS, res.data)
+      } else commit(mutationTypes.USER_SET_PLAN_BOOSTS, { boosts: [], commissions: [] })
     }
   }
 }

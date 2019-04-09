@@ -26,11 +26,19 @@ import UserDetail from '@/pages/user/_detail'
 
 import Owner from '@/pages/user/owner'
 import OwnerInfo from '@/pages/user/owner/children/info'
-import OwnerCandy from '@/pages/user/owner/children/candy'
+// import OwnerCandy from '@/pages/user/owner/children/candy'
 import OwnerTaverns from '@/pages/user/owner/children/taverns'
 import OwnerQuests from '@/pages/user/owner/children/tasks'
 import OwnerAuthorization from '@/pages/user/owner/children/authorization'
 import OwnerActivity from '@/pages/user/owner/children/activity'
+
+import OwnerPackageBounty from '@/pages/user/owner/children/packageBounty'
+import OwnerBC from '@/pages/user/owner/children/bc'
+import OwnerInvitation from '@/pages/user/owner/children/invitation'
+import OwnerReferee from '@/pages/user/owner/children/referee'
+import OwnerPlan from '@/pages/user/owner/children/plan'
+
+import BountyChestDetail from '@/pages/bountyChest/_detail'
 
 // mobile page
 import MobileHome from '@/pages/_mobile/home'
@@ -39,6 +47,7 @@ import MobileOwnerIndex from '@/pages/_mobile/owner'
 // import MobileOwnerCandy from '@/pages/_mobile/owner/candy'
 import MobileOwnerBC from '@/pages/_mobile/owner/bc'
 import MobileOwnerQuest from '@/pages/_mobile/owner/quest'
+import MobileLB from '@/pages/_mobile/luckyblocks'
 
 import MobileProject from '@/pages/_mobile/_project'
 import MobileBountyChestDetail from '@/pages/_mobile/_bountyChest'
@@ -63,7 +72,13 @@ import MobileReferralRewards from '@/pages/_mobile/owner/_user/referral/rewards'
 
 import MobileReferee from '@/pages/_mobile/owner/referee'
 
+import MobileUserDetail from '@/pages/_mobile/user/_detail'
+import MobileUserTaverns from '@/pages/_mobile/user/taverns'
+
 import MobileTavernDetail from '@/pages/_mobile/_tavern'
+import MobileTavernRecruitsDetail from '@/pages/_mobile/_recruits'
+import MobileTavernCommissionsDetail from '@/pages/_mobile/_commissions'
+import MobileUserPrivileges from '@/pages/_mobile/_privileges'
 
 // mobile routes
 const mobileRoutes = [
@@ -102,11 +117,62 @@ const mobileRoutes = [
     }
   },
   {
+    path: '/lb',
+    name: 'mobile-LB',
+    component: MobileLB,
+    meta: {
+      title: 'LuckyBlocks - LORDLESS',
+      isPublic: true,
+      keepAlive: true,
+      transition: true
+      // header: {
+      //   show: false
+      // },
+      // footer: {
+      //   show: false
+      // }
+    }
+  },
+  {
     path: '/tavern/:tavernId',
     name: 'mobile-tavern-detail',
     component: MobileTavernDetail,
     meta: {
       title: 'Tavern Detail - LORDLESS',
+      isPublic: true,
+      keepAlive: true,
+      transition: true
+      // header: {
+      //   show: false
+      // },
+      // footer: {
+      //   show: false
+      // }
+    }
+  },
+  {
+    path: '/recruits/:tavernId',
+    name: 'mobile-tavern-recruits-detail',
+    component: MobileTavernRecruitsDetail,
+    meta: {
+      title: 'Tavern Recruits - LORDLESS',
+      isPublic: true,
+      keepAlive: true,
+      transition: true
+      // header: {
+      //   show: false
+      // },
+      // footer: {
+      //   show: false
+      // }
+    }
+  },
+  {
+    path: '/commissions/:tavernId',
+    name: 'mobile-tavern-commissions-detail',
+    component: MobileTavernCommissionsDetail,
+    meta: {
+      title: 'Tavern Commissions - LORDLESS',
       isPublic: true,
       keepAlive: true,
       transition: true
@@ -138,6 +204,48 @@ const mobileRoutes = [
       isPublic: true,
       keepAlive: false,
       transition: false,
+      hideTab: true
+    }
+  },
+  {
+    path: '/user/:address/privileges',
+    name: 'mobile-user-privileges',
+    component: MobileUserPrivileges,
+    meta: {
+      title: 'User Privileges - LORDLESS',
+      isPublic: true,
+      keepAlive: true,
+      transition: false,
+      hideTab: true
+      // header: {
+      //   show: false
+      // },
+      // footer: {
+      //   show: false
+      // }
+    }
+  },
+  {
+    path: '/user/:address/info',
+    name: 'mobile-user-info-detail',
+    component: MobileUserDetail,
+    meta: {
+      title: 'User Info Detail - LORDLESS',
+      isPublic: true,
+      keepAlive: true,
+      transition: true,
+      hideTab: true
+    }
+  },
+  {
+    path: '/user/:address/taverns',
+    name: 'mobile-user-taverns-detail',
+    component: MobileUserTaverns,
+    meta: {
+      title: 'User Taverns - LORDLESS',
+      isPublic: true,
+      keepAlive: true,
+      transition: true,
       hideTab: true
     }
   },
@@ -313,7 +421,8 @@ const mobileRoutes = [
           title: 'PlanBase Detail - LORDLESS',
           ownerChild: true,
           keepAlive: true,
-          transition: false
+          transition: false,
+          hideTab: true
         }
       },
       {
@@ -516,11 +625,19 @@ const routes = [
     }
   },
   {
-    path: '/user/:address',
+    path: '/user/:address/info',
     name: 'userDetail',
     component: UserDetail,
     meta: {
       title: 'USER - LORDLESS'
+    }
+  },
+  {
+    path: '/bountyChest/:bountyId',
+    name: 'BountyChestDetail',
+    component: BountyChestDetail,
+    meta: {
+      title: 'BountyChest Detail - LORDLESS'
     }
   },
   {
@@ -582,21 +699,21 @@ const routes = [
           }
         }
       },
-      {
-        path: 'candy',
-        name: 'Owner-candy',
-        component: OwnerCandy,
-        meta: {
-          title: 'My Candies - LORDLESS',
-          navgation: 'candy',
-          header: {
-            show: false
-          },
-          footer: {
-            show: false
-          }
-        }
-      },
+      // {
+      //   path: 'candy',
+      //   name: 'Owner-candy',
+      //   component: OwnerCandy,
+      //   meta: {
+      //     title: 'My Candies - LORDLESS',
+      //     navgation: 'candy',
+      //     header: {
+      //       show: false
+      //     },
+      //     footer: {
+      //       show: false
+      //     }
+      //   }
+      // },
       {
         path: 'taverns',
         name: 'Owner-taverns',
@@ -649,6 +766,81 @@ const routes = [
         meta: {
           title: 'My Activities - LORDLESS',
           navgation: 'activity',
+          header: {
+            show: false
+          },
+          footer: {
+            show: false
+          }
+        }
+      },
+      {
+        path: 'bounty/package',
+        name: 'Owner-packageBounty',
+        component: OwnerPackageBounty,
+        meta: {
+          title: 'Package Bounty - LORDLESS',
+          navgation: 'Package',
+          header: {
+            show: false
+          },
+          footer: {
+            show: false
+          }
+        }
+      },
+      {
+        path: 'bc',
+        name: 'Owner-BC',
+        component: OwnerBC,
+        meta: {
+          title: 'BC - LORDLESS',
+          navgation: 'BC',
+          header: {
+            show: false
+          },
+          footer: {
+            show: false
+          }
+        }
+      },
+      {
+        path: 'invitation',
+        name: 'Owner-Invitation',
+        component: OwnerInvitation,
+        meta: {
+          title: 'Invitation - LORDLESS',
+          navgation: 'Invitation',
+          header: {
+            show: false
+          },
+          footer: {
+            show: false
+          }
+        }
+      },
+      {
+        path: 'referee',
+        name: 'Owner-Referee',
+        component: OwnerReferee,
+        meta: {
+          title: 'Referee - LORDLESS',
+          navgation: 'Referee',
+          header: {
+            show: false
+          },
+          footer: {
+            show: false
+          }
+        }
+      },
+      {
+        path: 'hops',
+        name: 'Owner-Hops',
+        component: OwnerPlan,
+        meta: {
+          title: 'HOPS - LORDLESS',
+          navgation: 'HOPS',
           header: {
             show: false
           },
